@@ -16,7 +16,7 @@ echo "[TEST]: Inserted the module"
 print_dmesg
 
 echo "[TEST]: Write test"
-MSG="Hello, world!"
+MSG="Hello, world!abcdefgh"
 echo $MSG > /dev/phonebook_char
 echo "[TEST] Tried to write '$MSG'"
 
