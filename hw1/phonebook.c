@@ -7,7 +7,7 @@
 
 #define DEVICE_NAME     "phonebook_char"
 #define CLASS_NAME      "phonebook"
-#define MSG_BUFFER_SIZE 16
+#define MSG_BUFFER_SIZE 256
 
 MODULE_LICENSE("GPL");
 
