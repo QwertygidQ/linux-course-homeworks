@@ -15,12 +15,12 @@ MODULE_LICENSE("GPL");
 
 static struct User {
     const char *name, *surname, *phone, *email, *to_split;
-    long age;
-    int successfully_created;
+    long       age;
+    int        successfully_created;
 };
 
 struct User users[MAX_USERS];
-size_t users_count = 0;
+size_t      users_count = 0;
 
 static int           major_number;
 static char          user_buffer[BUFFER_SIZE] = {0}; // messages from the user
@@ -37,16 +37,16 @@ static ssize_t dev_read(struct file *, char __user *, size_t, loff_t *);
 static ssize_t dev_write(struct file *, const char __user *, size_t, loff_t *);
 
 static struct file_operations fops = {
-    .open = dev_open,
+    .open    = dev_open,
     .release = dev_release,
-    .read = dev_read,
-    .write = dev_write,
+    .read    = dev_read,
+    .write   = dev_write,
 };
 
 static struct User new_user(const char *data);
-static ssize_t find_user(const char *surname);
-static int add_user(const struct User user);
-static int remove_user(size_t index);
+static ssize_t     find_user(const char *surname);
+static int         add_user(const struct User user);
+static int         remove_user(size_t index);
 
 static int __init phonebook_init(void) {
     printk(KERN_INFO "Phonebook: initializing the module\n");
