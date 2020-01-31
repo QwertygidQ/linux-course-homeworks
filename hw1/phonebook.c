@@ -15,14 +15,14 @@
 
 MODULE_LICENSE("GPL");
 
-static struct User {
+struct User {
     const char *name, *surname, *phone, *email, *to_split;
     long       age;
     int        successfully_created;
 };
 
-struct User users[MAX_USERS];
-size_t      users_count = 0;
+static struct User users[MAX_USERS];
+static size_t      users_count = 0;
 
 static int           major_number;
 static char          user_buffer[BUFFER_SIZE] = {0}; // messages from the user
