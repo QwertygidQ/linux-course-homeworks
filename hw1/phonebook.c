@@ -14,7 +14,7 @@
 MODULE_LICENSE("GPL");
 
 static struct User {
-    const char *name, *surname, *phone, *email;
+    const char *name, *surname, *phone, *email, *to_split;
     long age;
     int successfully_created;
 };
@@ -82,10 +82,15 @@ static int __init phonebook_init(void) {
 }
 
 static void __exit phonebook_exit(void) {
+    size_t i;
+
     device_destroy(phonebook_class, MKDEV(major_number, 0));
     class_unregister(phonebook_class);
     class_destroy(phonebook_class);
     unregister_chrdev(major_number, DEVICE_NAME);
+
+    for (i = 0; i < users_count; i++)
+        kfree(users[i].to_split);
 
     printk(KERN_INFO "Phonebook: successfully exited\n");
 }
@@ -175,36 +180,43 @@ static struct User new_user(const char *data) {
     user.name = strsep(&to_split, " ");
     if (user.name == NULL) {
         printk(KERN_ERR "Phonebook: invalid user data format (failed to parse the name)\n");
+        kfree(to_split);
         return user;
     }
     user.surname = strsep(&to_split, " ");
     if (user.surname == NULL) {
         printk(KERN_ERR "Phonebook: invalid user data format (failed to parse the surname)\n");
+        kfree(to_split);
         return user;
     }
     user.phone = strsep(&to_split, " ");
     if (user.phone == NULL) {
         printk(KERN_ERR "Phonebook: invalid user data format (failed to parse the phone number)\n");
+        kfree(to_split);
         return user;
     }
     user.email = strsep(&to_split, " ");
     if (user.email == NULL) {
         printk(KERN_ERR "Phonebook: invalid user data format (failed to parse the email adress)\n");
+        kfree(to_split);
         return user;
     }
 
     age_str = strsep(&to_split, " ");
     if (age_str == NULL) {
         printk(KERN_ERR "Phonebook: invalid user data format (failed to parse the age)\n");
+        kfree(to_split);
         return user;
     }
 
     if (kstrtol(age_str, 10, &age) != 0) {
         printk(KERN_ERR "Phonebook: invalid user data format (age should be a number)\n");
+        kfree(to_split);
         return user;
     }
 
     user.age = age;
+    user.to_split = to_split;
     user.successfully_created = 1;
     return user;
 }
@@ -236,6 +248,8 @@ static int remove_user(size_t index) {
         printk(KERN_ERR "Phonebook: can't remove user #%zu -- there are %zu total users\n", index, users_count);
         return 1;
     }
+
+    kfree(users[index].to_split);
 
     for (i = index; i < users_count - 1; i++)
         users[i] = users[i + 1];
