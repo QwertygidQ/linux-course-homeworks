@@ -17,13 +17,13 @@ print_dmesg
 
 echo "[TEST]: Write test"
 MSG="Hello, world!"
-echo $MSG > /dev/phonebook_char
+echo $MSG > /dev/phonebook_device
 echo "[TEST] Tried to write '$MSG'"
 
 print_dmesg
 
 echo "[TEST]: Read test"
-cat /dev/phonebook_char
+cat /dev/phonebook_device
 
 print_dmesg
 

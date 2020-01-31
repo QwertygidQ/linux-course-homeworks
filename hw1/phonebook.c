@@ -6,7 +6,7 @@
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 
-#define DEVICE_NAME "phonebook_char"
+#define DEVICE_NAME "phonebook_device"
 #define CLASS_NAME  "phonebook"
 #define BUFFER_SIZE 256
 #define MAX_USERS   256
