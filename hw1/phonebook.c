@@ -3,17 +3,30 @@
 #include <linux/device.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
+#include <linux/slab.h>
 #include <linux/uaccess.h>
 
-#define DEVICE_NAME     "phonebook_char"
-#define CLASS_NAME      "phonebook"
-#define MSG_BUFFER_SIZE 256
+#define DEVICE_NAME "phonebook_char"
+#define CLASS_NAME  "phonebook"
+#define BUFFER_SIZE 256
+#define MAX_USERS   256
 
 MODULE_LICENSE("GPL");
 
+static struct User {
+    const char *name, *surname, *phone, *email;
+    long age;
+    int successfully_created;
+};
+
+struct User users[MAX_USERS];
+size_t users_count = 0;
+
 static int           major_number;
-static char          message_buffer[MSG_BUFFER_SIZE] = {0};
-static int           message_size;
+static char          user_buffer[BUFFER_SIZE] = {0}; // messages from the user
+static int           user_msg_size;
+static char          device_buffer[BUFFER_SIZE] = {0}; // messages to the user
+static int           device_msg_size;
 static int           device_opened_count = 0;
 static struct class  *phonebook_class = NULL;
 static struct device *phonebook_device = NULL;
@@ -29,6 +42,11 @@ static struct file_operations fops = {
     .read = dev_read,
     .write = dev_write,
 };
+
+static struct User new_user(const char *data);
+static ssize_t find_user(const char *surname);
+static int add_user(const struct User user);
+static int remove_user(size_t index);
 
 static int __init phonebook_init(void) {
     printk(KERN_INFO "Phonebook: initializing the module\n");
@@ -95,13 +113,13 @@ static int dev_release(struct inode *inode, struct file *file) {
 static ssize_t dev_read(struct file *file, char __user *buffer, size_t len, loff_t *offset) {
     int error_count;
 
-    int copy_len = min(message_size - *offset, len);
+    int copy_len = min(device_msg_size - *offset, len);
     if (copy_len <= 0)
         return 0;
 
-    error_count = copy_to_user(buffer, message_buffer + *offset, copy_len);
+    error_count = copy_to_user(buffer, device_buffer + *offset, copy_len);
     if (error_count != 0) {
-        printk(KERN_ERR "Phonebook: failed to copy %d bytes to the user space, copy_len: %d\n", error_count, copy_len);
+        printk(KERN_ERR "Phonebook: failed to copy %d bytes to the user space\n", error_count);
         return -EFAULT;
     }
 
@@ -114,9 +132,9 @@ static ssize_t dev_read(struct file *file, char __user *buffer, size_t len, loff
 static ssize_t dev_write(struct file *file, const char __user *buffer, size_t len, loff_t *offset) {
     int error_count;
 
-    int copy_len = min(MSG_BUFFER_SIZE - *offset, len);
+    int copy_len = min(BUFFER_SIZE - *offset, len);
     if (copy_len <= 0) {
-        if (MSG_BUFFER_SIZE == *offset)
+        if (BUFFER_SIZE == *offset)
             printk(KERN_INFO "Phonebook: no more space left in the buffer, ignoring\n");
         else
             printk(KERN_INFO "Phonebook: nothing more to copy from user space to device\n");
@@ -124,16 +142,106 @@ static ssize_t dev_write(struct file *file, const char __user *buffer, size_t le
         return len;
     }
 
-    error_count = copy_from_user(message_buffer + *offset, buffer, copy_len);
+    error_count = copy_from_user(user_buffer + *offset, buffer, copy_len);
     if (error_count != 0) {
         printk(KERN_ERR "Phonebook: failed to copy %d bytes from the user space\n", error_count);
         return -EFAULT;
     }
 
     *offset += copy_len;
-    message_size = *offset;
-    printk(KERN_INFO "Phonebook: received %zu characters from the user, new message size: %d\n", len, message_size);
+    user_msg_size = *offset;
+    user_buffer[BUFFER_SIZE - 1] = '\0';
+    printk(KERN_INFO "Phonebook: received %zu characters from the user, new message size: %d\n", len, user_msg_size);
     return copy_len;
+}
+
+// Format: "name surname phone email age"
+static struct User new_user(const char *data) {
+    const size_t len = strlen(data);
+    long age;
+    char *to_split, *age_str;
+
+    struct User user;
+    user.successfully_created = 0;
+
+    to_split = (char *)kmalloc(sizeof(char) * (len + 1), GFP_KERNEL);
+    if (!to_split) {
+        printk(KERN_ERR "Phonebook: failed to allocate memory for user info parsing\n");
+        return user;
+    } else {
+        strcpy(to_split, data);
+    }
+
+    user.name = strsep(&to_split, " ");
+    if (user.name == NULL) {
+        printk(KERN_ERR "Phonebook: invalid user data format (failed to parse the name)\n");
+        return user;
+    }
+    user.surname = strsep(&to_split, " ");
+    if (user.surname == NULL) {
+        printk(KERN_ERR "Phonebook: invalid user data format (failed to parse the surname)\n");
+        return user;
+    }
+    user.phone = strsep(&to_split, " ");
+    if (user.phone == NULL) {
+        printk(KERN_ERR "Phonebook: invalid user data format (failed to parse the phone number)\n");
+        return user;
+    }
+    user.email = strsep(&to_split, " ");
+    if (user.email == NULL) {
+        printk(KERN_ERR "Phonebook: invalid user data format (failed to parse the email adress)\n");
+        return user;
+    }
+
+    age_str = strsep(&to_split, " ");
+    if (age_str == NULL) {
+        printk(KERN_ERR "Phonebook: invalid user data format (failed to parse the age)\n");
+        return user;
+    }
+
+    if (kstrtol(age_str, 10, &age) != 0) {
+        printk(KERN_ERR "Phonebook: invalid user data format (age should be a number)\n");
+        return user;
+    }
+
+    user.age = age;
+    user.successfully_created = 1;
+    return user;
+}
+
+static ssize_t find_user(const char *surname) {
+    size_t i;
+    for (i = 0; i < users_count; i++) {
+        if (strcmp(users[i].surname, surname) == 0)
+            return i;
+    }
+
+    return -1;
+}
+
+static int add_user(const struct User user) {
+    if (users_count == MAX_USERS) {
+        printk(KERN_ERR "Phonebook: no more space in the users array\n");
+        return 1;
+    }
+
+    users[users_count++] = user;
+    return 0;
+}
+
+static int remove_user(size_t index) {
+    size_t i;
+
+    if (index >= users_count) {
+        printk(KERN_ERR "Phonebook: can't remove user #%zu -- there are %zu total users\n", index, users_count);
+        return 1;
+    }
+
+    for (i = index; i < users_count - 1; i++)
+        users[i] = users[i + 1];
+
+    users_count--;
+    return 0;
 }
 
 module_init(phonebook_init);
