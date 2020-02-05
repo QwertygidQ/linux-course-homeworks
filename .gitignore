@@ -1,4 +1,5 @@
-*
+hw1/*
+a.out
 
 !.gitignore
 !Makefile
@@ -6,3 +7,4 @@
 !test.sh
 !LICENSE
 !README.md
+
