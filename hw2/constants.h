@@ -2,7 +2,7 @@
 #define CONSTANTS_H
 
 #define MAGIC                 0xEF53
-#define BOOT_OFFSET           1024 // bytes
+#define BOOT_OFFSET           1024   // bytes
 
 #define INODE_BLOCK_COUNT     14
 #define INDIRECT_BLOCK        12

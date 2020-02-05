@@ -25,10 +25,10 @@ struct Superblock create_superblock(
 );
 
 int  write_superblock(struct Superblock *superblock, FILE *file);
-int  read_superblock(struct Superblock *superblock, FILE *file);
-void free_superblock(struct Superblock *superblock);
+int  read_superblock (struct Superblock *superblock, FILE *file);
+void free_superblock (struct Superblock *superblock);
 
-int set_block_use(struct Superblock *superblock, const size_t block_id, int is_used);
-int set_inode_use(struct Superblock *superblock, const size_t inode_id, int is_used);
+int set_block_use(struct Superblock *superblock, const size_t block_id, const int is_used);
+int set_inode_use(struct Superblock *superblock, const size_t inode_id, const int is_used);
 
 #endif

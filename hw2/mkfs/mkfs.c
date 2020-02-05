@@ -107,14 +107,21 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    // TODO: set_block_use, set_inode_use
-
     if (fwrite(&root, INODE_SIZE, 1, file) != 1) {
         fprintf(stderr, "[mkfs] Failed to write the root directory inode\n");
         free_superblock(&superblock);
         return EXIT_FAILURE;
     }
 
+    // Setting the inode and block bitmaps for the root inode
+    superblock.free_blocks -= inode_table_blocks + 1;
+    for (size_t block = 1; block <= inode_table_blocks + 1; ++block)
+        set_block_use(&superblock, block, 1);
+
+    set_inode_use(&superblock, 1, 1);
+    --superblock.free_inodes;
+
+    // Writing the superblock
     if (write_superblock(&superblock, file)) {
         fprintf(stderr, "[mkfs] Failed to write the superblock\n");
         free_superblock(&superblock);
