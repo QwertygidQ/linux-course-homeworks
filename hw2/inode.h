@@ -11,6 +11,6 @@ struct Inode {
     uint32_t blocks[INODE_BLOCK_COUNT];
 };
 
-const size_t INODE_SIZE = sizeof(struct Inode);
+#define INODE_SIZE sizeof(struct Inode)
 
 #endif

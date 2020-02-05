@@ -1,6 +1,7 @@
 hw1/*
 a.out
 fs
+.vscode
 
 !.gitignore
 !Makefile
