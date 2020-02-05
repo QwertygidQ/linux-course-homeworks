@@ -5,10 +5,11 @@
 #include <string.h>
 
 #include "../constants.h"
-#include "../defaults.h"
 #include "../div_ceil.h"
 #include "../inode.h"
 #include "../superblock.h"
+
+#include "defaults.h"
 
 void print_usage(const char *launch_name) {
     fprintf(
