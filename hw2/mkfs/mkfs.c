@@ -3,7 +3,9 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "../constants.h"
 #include "../defaults.h"
+#include "../inode.h"
 #include "../superblock.h"
 
 void print_usage(const char *launch_name) {
@@ -13,7 +15,6 @@ void print_usage(const char *launch_name) {
         "FILE "
         "[BLOCK_SIZE "
         "TOTAL_BLOCKS "
-        "INODE_SIZE "
         "TOTAL_INODES]\n",
         launch_name
     );
@@ -22,7 +23,6 @@ void print_usage(const char *launch_name) {
 int parse_arguments(int argc, char *argv[], struct Superblock *superblock, char **file) {
     uint32_t block_size   = DEFAULT_BLOCK_SIZE;
     uint32_t total_blocks = DEFAULT_TOTAL_BLOCKS;
-    uint32_t inode_size   = DEFAULT_INODE_SIZE;
     uint32_t total_inodes = DEFAULT_TOTAL_INODES;
 
     if (argc != 2 && argc != 6) {
@@ -34,7 +34,6 @@ int parse_arguments(int argc, char *argv[], struct Superblock *superblock, char 
         uint32_t* args[] = {
             &block_size,
             &total_blocks,
-            &inode_size,
             &total_inodes
         };
         for (size_t i = 2; i < argc; ++i) {
@@ -62,7 +61,7 @@ int parse_arguments(int argc, char *argv[], struct Superblock *superblock, char 
         .free_blocks  = total_blocks,
         .free_inodes  = total_inodes,
         .block_size   = block_size,
-        .inode_size   = inode_size
+        .inode_size   = INODE_SIZE
     };
 
     return 1;
@@ -82,7 +81,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    if (fseek(file, DEFAULT_BOOT_OFFSET, SEEK_SET)) {
+    if (fseek(file, BOOT_OFFSET, SEEK_SET)) {
         fprintf(stderr, "[mkfs] Failed to seek to the beginning of the superblock\n");
         return EXIT_FAILURE;
     }
