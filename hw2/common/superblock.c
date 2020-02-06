@@ -48,7 +48,7 @@ struct Superblock create_superblock(
     return new_superblock;
 }
 
-int write_superblock(struct Superblock *superblock, FILE *file) {
+int write_superblock(const struct Superblock *superblock, FILE *file) {
     if (fseek(file, BOOT_OFFSET, SEEK_SET)) {
         fprintf(stderr, "Failed to seek to the beginning of the superblock\n");
         return 1;
@@ -160,13 +160,13 @@ int read_superblock(struct Superblock *superblock, FILE *file) {
     return 0;
 }
 
-void free_superblock(struct Superblock *superblock) {
+void free_superblock(const struct Superblock *superblock) {
     free(superblock->used_blocks_bitmap);
     free(superblock->used_inodes_bitmap);
 }
 
 int set_block_use(struct Superblock *superblock, const size_t block_id, const int is_used) {
-    if (block_id == 0 || block_id > superblock->used_blocks_bitmap_len * 8) {
+    if (block_id == 0 || block_id > superblock->total_blocks) {
         fprintf(stderr, "Invalid block id\n");
         return 1;
     }
@@ -188,7 +188,7 @@ int set_block_use(struct Superblock *superblock, const size_t block_id, const in
 }
 
 int set_inode_use(struct Superblock *superblock, const size_t inode_id, const int is_used) {
-    if (inode_id == 0 || inode_id > superblock->used_inodes_bitmap_len * 8) {
+    if (inode_id == 0 || inode_id > superblock->total_inodes) {
         fprintf(stderr, "Invalid inode id\n");
         return 1;
     }

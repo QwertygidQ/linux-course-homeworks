@@ -4,10 +4,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../constants.h"
-#include "../div_ceil.h"
-#include "../inode.h"
-#include "../superblock.h"
+#include "../common/constants.h"
+#include "../common/div_ceil.h"
+#include "../common/inode.h"
+#include "../common/inode_ops.h"
+#include "../common/superblock.h"
 
 #include "defaults.h"
 
@@ -94,7 +95,7 @@ int main(int argc, char *argv[]) {
     uint32_t root_blocks[INODE_BLOCK_COUNT];
     root_blocks[0] = inode_table_blocks + 1;
     for (size_t i = 1; i < INODE_BLOCK_COUNT; ++i)
-        root_blocks[i] = UNDEFINED_BLOCK;
+        root_blocks[i] = 0;
 
     struct Inode root = {
         .file_size   = 0,
@@ -102,25 +103,15 @@ int main(int argc, char *argv[]) {
     };
     memcpy(root.blocks, root_blocks, sizeof(root.blocks));
 
-    if (fseek(file, BOOT_OFFSET + superblock.size, SEEK_SET)) {
-        fprintf(stderr, "[mkfs] Failed to seek to the start of the inode table\n");
-        free_superblock(&superblock);
-        return EXIT_FAILURE;
-    }
+    write_inode(file, &superblock, &root, 1);
 
-    if (fwrite(&root, INODE_SIZE, 1, file) != 1) {
-        fprintf(stderr, "[mkfs] Failed to write the root directory inode\n");
-        free_superblock(&superblock);
-        return EXIT_FAILURE;
-    }
-
-    // Setting the inode and block bitmaps for the root inode
+    // Setting the inode and block bitmaps for the root inode and the inode table
     superblock.free_blocks -= inode_table_blocks + 1;
     for (size_t block = 1; block <= inode_table_blocks + 1; ++block)
         set_block_use(&superblock, block, 1);
 
-    set_inode_use(&superblock, 1, 1);
     --superblock.free_inodes;
+    set_inode_use(&superblock, 1, 1);
 
     // Writing the superblock
     if (write_superblock(&superblock, file)) {

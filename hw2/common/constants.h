@@ -8,9 +8,6 @@
 #define INDIRECT_BLOCK        12
 #define DOUBLE_INDIRECT_BLOCK 13
 
-#define UNDEFINED_INODE       0
-#define UNDEFINED_BLOCK       0
-
 #define MAX_FILENAME_LEN      255
 
 #define FILETYPE_FILE         0
