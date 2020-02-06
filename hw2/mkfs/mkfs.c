@@ -31,12 +31,12 @@ int parse_arguments(int argc, char *argv[], struct Superblock *superblock, char 
     uint32_t total_blocks = DEFAULT_TOTAL_BLOCKS;
     uint32_t total_inodes = DEFAULT_TOTAL_INODES;
 
-    if (argc != 2 && argc != 6) {
+    if (argc != 2 && argc != 5) {
         print_usage(argv[0]);
         return 1;
     }
 
-    if (argc == 6) {
+    if (argc == 5) {
         uint32_t* args[] = {
             &block_size,
             &total_blocks,
