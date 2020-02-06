@@ -81,6 +81,9 @@ int main(int argc, char *argv[]) {
 
     printf("[mkfs] Resulting superblock size: %d\n", superblock.size);
     printf("[mkfs] Creating a file system in %s\n", filename);
+    printf("[mkfs] BLOCK_SIZE: %d\n", superblock.block_size);
+    printf("[mkfs] TOTAL_BLOCKS: %d\n", superblock.total_blocks);
+    printf("[mkfs] TOTAL_INODES: %d\n", superblock.total_inodes);
 
     // Opening the file
     FILE *file = fopen(filename, "wb");
@@ -181,8 +184,15 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    free_superblock(&superblock);
-
     printf("[mkfs] Success!\n");
+    printf(
+        "[mkfs] Free inodes: %d/%d, free blocks: %d/%d\n",
+        superblock.free_inodes,
+        superblock.total_inodes,
+        superblock.free_blocks,
+        superblock.total_blocks
+    );
+
+    free_superblock(&superblock);
     return EXIT_SUCCESS;
 }
