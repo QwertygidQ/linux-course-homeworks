@@ -12,4 +12,6 @@ make
 ```
 
 ## Running
+```
 ./mkfs FILE [BLOCK_SIZE TOTAL_BLOCKS TOTAL_INODES]
+```
