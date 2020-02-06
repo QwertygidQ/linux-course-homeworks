@@ -8,7 +8,7 @@
 #define INDIRECT_BLOCK        12
 #define DOUBLE_INDIRECT_BLOCK 13
 
-#define MAX_FILENAME_LEN      255
+#define MAX_FILENAME_LEN      63
 
 #define FILETYPE_FILE         0
 #define FILETYPE_DIRECTORY    1

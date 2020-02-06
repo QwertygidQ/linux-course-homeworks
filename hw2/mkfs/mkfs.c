@@ -5,10 +5,12 @@
 #include <string.h>
 
 #include "../common/constants.h"
+#include "../common/directory_entry.h"
 #include "../common/div_ceil.h"
 #include "../common/inode.h"
 #include "../common/inode_ops.h"
 #include "../common/superblock.h"
+#include "../common/write_ops.h"
 
 #include "defaults.h"
 
@@ -59,6 +61,14 @@ int parse_arguments(int argc, char *argv[], struct Superblock *superblock, char 
 
     *file = argv[1];
     *superblock = create_superblock(MAGIC, total_blocks, total_inodes, block_size);
+    if (superblock->used_blocks_bitmap == NULL) {
+        fprintf(stderr, "Failed to allocate memory for the blocks bitmap\n");
+        return 1;
+    }
+    if (superblock->used_inodes_bitmap == NULL) {
+        fprintf(stderr, "Failed to allocate memory for the inodes bitmap\n");
+        return 1;
+    }
 
     return 0;
 }
@@ -88,13 +98,58 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    // Writing the inode for the root directory
+    printf("[mkfs] Padded the file\n");
+
+    // Reserving blocks for the inode table
     const size_t inode_table_size = INODE_SIZE * superblock.total_inodes;
     const size_t inode_table_blocks = DIV_CEIL(inode_table_size, superblock.block_size);
 
+    superblock.free_blocks -= inode_table_blocks;
+    for (size_t i = 1; i <= inode_table_blocks; ++i) {
+        if (set_block_use(&superblock, i, 1))
+            return EXIT_FAILURE;
+    }
+
+    printf("[mkfs] Reserved %d blocks for the inode table\n", inode_table_blocks);
+
+    // Writing the dot directory entry for the root directory
+    struct DirectoryEntry root_dot = {
+        .inode_id = 1,
+        .filetype = FILETYPE_DIRECTORY,
+        .name_len = 1,
+        .name     = "."
+    };
+
+    const size_t n_root_dot_blocks = DIV_CEIL(DIRECTORY_ENTRY_SIZE, superblock.block_size);
+    uint32_t *block_ids = calloc(sizeof(uint32_t), n_root_dot_blocks);
+    if (block_ids == NULL) {
+        fprintf(stderr, "[mkfs] Failed to allocate memory for block_ids\n");
+        return EXIT_FAILURE;
+    }
+
+    for (size_t i = 0; i < n_root_dot_blocks; ++i) {
+        const uint32_t block_id = inode_table_blocks + 1 + i;
+        block_ids[i] = block_id;
+
+        if (set_block_use(&superblock, block_id, 1))
+            return EXIT_FAILURE;
+    }
+    superblock.free_blocks -= n_root_dot_blocks;
+
+    if (write_blocks(file, &superblock, block_ids, n_root_dot_blocks, &root_dot, DIRECTORY_ENTRY_SIZE))
+        return EXIT_FAILURE;
+
+    free(block_ids);
+
+    printf("[mkfs] Wrote the root directory dot entry (%d blocks)\n", n_root_dot_blocks);
+
+    // Writing the inode for the root directory
     uint32_t root_blocks[INODE_BLOCK_COUNT];
-    root_blocks[0] = inode_table_blocks + 1;
-    for (size_t i = 1; i < INODE_BLOCK_COUNT; ++i)
+    for (size_t i = 0; i < n_root_dot_blocks; ++i) {
+        const uint32_t block_id = inode_table_blocks + 1 + i;
+        root_blocks[i] = block_id;
+    }
+    for (size_t i = n_root_dot_blocks; i < INODE_BLOCK_COUNT; ++i)
         root_blocks[i] = 0;
 
     struct Inode root = {
@@ -103,15 +158,14 @@ int main(int argc, char *argv[]) {
     };
     memcpy(root.blocks, root_blocks, sizeof(root.blocks));
 
-    write_inode(file, &superblock, &root, 1);
-
-    // Setting the inode and block bitmaps for the root inode and the inode table
-    superblock.free_blocks -= inode_table_blocks + 1;
-    for (size_t block = 1; block <= inode_table_blocks + 1; ++block)
-        set_block_use(&superblock, block, 1);
+    if(write_inode(file, &superblock, &root, 1))
+        return EXIT_FAILURE;
 
     --superblock.free_inodes;
-    set_inode_use(&superblock, 1, 1);
+    if(set_inode_use(&superblock, 1, 1))
+        return EXIT_FAILURE;
+
+    printf("[mkfs] Wrote the root directory inode\n");
 
     // Writing the superblock
     if (write_superblock(&superblock, file)) {
@@ -128,5 +182,7 @@ int main(int argc, char *argv[]) {
     }
 
     free_superblock(&superblock);
+
+    printf("[mkfs] Success!\n");
     return EXIT_SUCCESS;
 }

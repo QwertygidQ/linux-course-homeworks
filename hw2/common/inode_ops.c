@@ -5,7 +5,7 @@
 static int seek_to_inode(
      FILE *file,
      const struct Superblock *superblock,
-     const size_t inode_id
+     const uint32_t inode_id
 ) {
     if (inode_id == 0 || inode_id > superblock->total_inodes) {
         fprintf(stderr, "Invalid inode id\n");
@@ -28,7 +28,7 @@ int write_inode(
      FILE *file,
      const struct Superblock *superblock,
      const struct Inode *inode,
-     const size_t inode_id
+     const uint32_t inode_id
 ) {
     if (seek_to_inode(file, superblock, inode_id))
         return 1;
@@ -45,7 +45,7 @@ int read_inode (
      FILE *file,
      const struct Superblock *superblock,
      struct Inode *inode,
-     const size_t inode_id
+     const uint32_t inode_id
 ) {
     if (seek_to_inode(file, superblock, inode_id))
         return 1;

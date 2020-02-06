@@ -138,6 +138,15 @@ int read_superblock(struct Superblock *superblock, FILE *file) {
     }
 
     *superblock = create_superblock(magic, total_blocks, total_inodes, block_size);
+    if (superblock->used_blocks_bitmap == NULL) {
+        fprintf(stderr, "Failed to allocate memory for the blocks bitmap\n");
+        return 1;
+    }
+    if (superblock->used_inodes_bitmap == NULL) {
+        fprintf(stderr, "Failed to allocate memory for the inodes bitmap\n");
+        return 1;
+    }
+
     superblock->free_blocks = free_blocks;
     superblock->free_inodes = free_inodes;
 
@@ -165,7 +174,7 @@ void free_superblock(const struct Superblock *superblock) {
     free(superblock->used_inodes_bitmap);
 }
 
-int set_block_use(struct Superblock *superblock, const size_t block_id, const int is_used) {
+int set_block_use(struct Superblock *superblock, const uint32_t block_id, const int is_used) {
     if (block_id == 0 || block_id > superblock->total_blocks) {
         fprintf(stderr, "Invalid block id\n");
         return 1;
@@ -187,7 +196,7 @@ int set_block_use(struct Superblock *superblock, const size_t block_id, const in
     return 0;
 }
 
-int set_inode_use(struct Superblock *superblock, const size_t inode_id, const int is_used) {
+int set_inode_use(struct Superblock *superblock, const uint32_t inode_id, const int is_used) {
     if (inode_id == 0 || inode_id > superblock->total_inodes) {
         fprintf(stderr, "Invalid inode id\n");
         return 1;
