@@ -1,7 +1,5 @@
 #include "superblock.h"
 
-#include <stdlib.h>
-
 #include "constants.h"
 #include "div_ceil.h"
 

@@ -1,6 +1,4 @@
-#include "inode_ops.h"
-
-#include "constants.h"
+#include "inode.h"
 
 static int seek_to_inode(
      FILE *file,

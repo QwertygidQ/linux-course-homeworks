@@ -8,7 +8,6 @@
 #include "../common/directory_entry.h"
 #include "../common/div_ceil.h"
 #include "../common/inode.h"
-#include "../common/inode_ops.h"
 #include "../common/superblock.h"
 #include "../common/write_ops.h"
 
