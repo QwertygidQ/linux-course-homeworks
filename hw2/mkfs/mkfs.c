@@ -155,7 +155,7 @@ int main(int argc, char *argv[]) {
         root_blocks[i] = 0;
 
     struct Inode root = {
-        .file_size   = 0,
+        .file_size   = DIRECTORY_ENTRY_SIZE,
         .links_count = 1
     };
     memcpy(root.blocks, root_blocks, sizeof(root.blocks));
