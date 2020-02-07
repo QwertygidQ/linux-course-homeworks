@@ -28,6 +28,14 @@ int read_inode (
     const uint32_t inode_id
 );
 
+int get_all_block_ids(
+    FILE *file,
+    const struct Superblock *superblock,
+    const struct Inode *inode,
+    uint32_t *block_ids,
+    size_t *n_block_ids
+);
+
 #define INODE_SIZE sizeof(struct Inode)
 
 #endif
