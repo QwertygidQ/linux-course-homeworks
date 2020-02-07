@@ -32,7 +32,7 @@ int get_all_block_ids(
     FILE *file,
     const struct Superblock *superblock,
     const struct Inode *inode,
-    uint32_t *block_ids,
+    uint32_t **block_ids,
     size_t *n_block_ids
 );
 

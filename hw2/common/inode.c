@@ -87,18 +87,18 @@ static int get_indirect_block_ids(
 }
 
 static int finalize_get_all_block_ids(
-     uint32_t *block_ids,
+     uint32_t **block_ids,
      size_t *n_block_ids,
      const size_t offset
 ) {
-    uint32_t *reallocated = realloc(block_ids, offset * sizeof(uint32_t));
+    uint32_t *reallocated = realloc(*block_ids, offset * sizeof(uint32_t));
     if (!reallocated) {
         fprintf(stderr, "Failed to resize block_ids\n");
-        free(block_ids);
+        free(*block_ids);
         return 1;
     }
 
-    block_ids = reallocated;
+    *block_ids = reallocated;
     *n_block_ids = offset;
     return 0;
 }
@@ -107,16 +107,16 @@ int get_all_block_ids(
      FILE *file,
      const struct Superblock *superblock,
      const struct Inode *inode,
-     uint32_t *block_ids,
+     uint32_t **block_ids,
      size_t *n_block_ids
 ) {
     const size_t indirect_len = superblock->block_size / sizeof(uint32_t);
 
-    block_ids = calloc(
+    *block_ids = calloc(
         indirect_len * indirect_len + indirect_len + INDIRECT_BLOCK,
         sizeof(uint32_t)
     ); // maximum possible block ids
-    if (!block_ids) {
+    if (!(*block_ids)) {
         fprintf(stderr, "Failed to allocate memory for block_ids\n");
         return 1;
     }
@@ -125,7 +125,7 @@ int get_all_block_ids(
     size_t offset = 0;
     for (size_t i = 0; i < INDIRECT_BLOCK; ++i) {
         if (inode->blocks[i] != 0) {
-            *(block_ids + offset) = inode->blocks[i];
+            *(*block_ids + offset) = inode->blocks[i];
             ++offset;
         } else {
             break;
@@ -143,11 +143,11 @@ int get_all_block_ids(
              file,
              superblock,
              inode->blocks[INDIRECT_BLOCK],
-             block_ids + offset,
+             *block_ids + offset,
              &n_indirect_blocks
          )
     ) {
-        free(block_ids);
+        free(*block_ids);
         return 1;
     }
 
@@ -160,7 +160,7 @@ int get_all_block_ids(
     uint32_t *double_indirect_map = malloc(superblock->block_size);
     if (!double_indirect_map) {
         fprintf(stderr, "Failed to allocate memory for double_indirect_map\n");
-        free(block_ids);
+        free(*block_ids);
         return 1;
     }
 
@@ -175,7 +175,7 @@ int get_all_block_ids(
          )
     ) {
         free(double_indirect_map);
-        free(block_ids);
+        free(*block_ids);
         return 1;
     }
 
@@ -189,12 +189,12 @@ int get_all_block_ids(
                  file,
                  superblock,
                  *(double_indirect_map + i),
-                 block_ids + offset,
+                 *block_ids + offset,
                  &n_last_indirect_blocks
              )
         ) {
             free(double_indirect_map);
-            free(block_ids);
+            free(*block_ids);
             return 1;
         }
 
