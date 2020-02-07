@@ -2,6 +2,7 @@ hw1/*
 a.out
 fs
 hw2/mkfs/mkfs
+hw2/openfs/openfs
 .vscode
 *.gch
 
