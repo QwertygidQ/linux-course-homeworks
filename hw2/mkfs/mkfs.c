@@ -72,6 +72,12 @@ int parse_arguments(int argc, char *argv[], struct Superblock *superblock, char 
     return 0;
 }
 
+void cleanup(FILE *file, struct Superblock *superblock) {
+    free_superblock(superblock);
+    if (fclose(file) == EOF)
+        fprintf(stderr, "[mkfs] Failed to close the file\n");
+}
+
 int main(int argc, char *argv[]) {
     char *filename;
     struct Superblock superblock;
@@ -96,7 +102,7 @@ int main(int argc, char *argv[]) {
     const size_t filesize = BOOT_OFFSET + superblock.size + superblock.total_blocks * superblock.block_size;
     if (fseek(file, filesize  - 1, SEEK_SET) || fputc(0, file) == EOF) {
         fprintf(stderr, "[mkfs] Failed to pad the file to the correct size\n");
-        free_superblock(&superblock);
+        cleanup(file, &superblock);
         return EXIT_FAILURE;
     }
 
@@ -107,8 +113,10 @@ int main(int argc, char *argv[]) {
     const size_t inode_table_blocks = DIV_CEIL(inode_table_size, superblock.block_size);
 
     for (size_t i = 1; i <= inode_table_blocks; ++i) {
-        if (set_block_use(&superblock, i, 1))
+        if (set_block_use(&superblock, i, 1)) {
+            cleanup(file, &superblock);
             return EXIT_FAILURE;
+        }
     }
 
     printf("[mkfs] Reserved %d blocks for the inode table\n", inode_table_blocks);
@@ -125,6 +133,7 @@ int main(int argc, char *argv[]) {
     uint32_t *block_ids = calloc(n_root_dot_blocks, sizeof(uint32_t));
     if (block_ids == NULL) {
         fprintf(stderr, "[mkfs] Failed to allocate memory for block_ids\n");
+        cleanup(file, &superblock);
         return EXIT_FAILURE;
     }
 
@@ -132,12 +141,16 @@ int main(int argc, char *argv[]) {
         const uint32_t block_id = inode_table_blocks + 1 + i;
         block_ids[i] = block_id;
 
-        if (set_block_use(&superblock, block_id, 1))
+        if (set_block_use(&superblock, block_id, 1)) {
+            cleanup(file, &superblock);
             return EXIT_FAILURE;
+        }
     }
 
-    if (write_blocks(file, &superblock, block_ids, n_root_dot_blocks, &root_dot, DIRECTORY_ENTRY_SIZE))
+    if (write_blocks(file, &superblock, block_ids, n_root_dot_blocks, &root_dot, DIRECTORY_ENTRY_SIZE)) {
+        cleanup(file, &superblock);
         return EXIT_FAILURE;
+    }
 
     free(block_ids);
 
@@ -158,18 +171,22 @@ int main(int argc, char *argv[]) {
     };
     memcpy(root.blocks, root_blocks, sizeof(root.blocks));
 
-    if(write_inode(file, &superblock, &root, 1))
+    if(write_inode(file, &superblock, &root, 1)) {
+        cleanup(file, &superblock);
         return EXIT_FAILURE;
+    }
 
-    if(set_inode_use(&superblock, 1, 1))
+    if(set_inode_use(&superblock, 1, 1)) {
+        cleanup(file, &superblock);
         return EXIT_FAILURE;
+    }
 
     printf("[mkfs] Wrote the root directory inode\n");
 
     // Writing the superblock
     if (write_superblock(&superblock, file)) {
         fprintf(stderr, "[mkfs] Failed to write the superblock\n");
-        free_superblock(&superblock);
+        cleanup(file, &superblock);
         return EXIT_FAILURE;
     }
 

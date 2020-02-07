@@ -232,5 +232,7 @@ int append_block_ids(
         offset += write_len;
     }
 
+    // TODO: appending for indirect addressing
+
     return 0;
 }
