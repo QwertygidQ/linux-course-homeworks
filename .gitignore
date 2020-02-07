@@ -3,6 +3,7 @@ a.out
 fs
 hw2/mkfs/mkfs
 .vscode
+*.gch
 
 !.gitignore
 !Makefile

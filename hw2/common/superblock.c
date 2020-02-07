@@ -215,3 +215,31 @@ int set_inode_use(struct Superblock *superblock, const uint32_t inode_id, const 
 
     return 0;
 }
+
+int get_block_use(const struct Superblock *superblock, const uint32_t block_id) {
+    if (block_id == 0 || block_id > superblock->total_blocks) {
+        fprintf(stderr, "Invalid block id\n");
+        return -1;
+    }
+
+    uint8_t bitmap_uint8 = *(superblock->used_blocks_bitmap + DIV_CEIL(block_id, 8) - 1);
+
+    if (block_id % 8 != 0)
+        bitmap_uint8 >>= (8 - block_id % 8);
+
+    return bitmap_uint8 & 1;
+}
+
+int get_inode_use(const struct Superblock *superblock, const uint32_t inode_id) {
+    if (inode_id == 0 || inode_id > superblock->total_inodes) {
+        fprintf(stderr, "Invalid inode id\n");
+        return -1;
+    }
+
+    uint8_t bitmap_uint8 = *(superblock->used_inodes_bitmap + DIV_CEIL(inode_id, 8) - 1);
+
+    if (inode_id % 8 != 0)
+        bitmap_uint8 >>= (8 - inode_id % 8);
+
+    return bitmap_uint8 & 1;
+}
