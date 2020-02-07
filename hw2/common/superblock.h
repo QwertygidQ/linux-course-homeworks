@@ -34,4 +34,7 @@ int set_inode_use(struct Superblock *superblock, const uint32_t inode_id, const 
 int get_block_use(const struct Superblock *superblock, const uint32_t block_id);
 int get_inode_use(const struct Superblock *superblock, const uint32_t inode_id);
 
+int get_unused_blocks(const struct Superblock *superblock, uint32_t *blocks, const size_t n_blocks);
+int get_unused_inodes(const struct Superblock *superblock, uint32_t *inodes, const size_t n_inodes);
+
 #endif

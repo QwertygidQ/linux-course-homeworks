@@ -7,7 +7,7 @@
 #include "../common/superblock.h"
 #include "../common/inode.h"
 
-typedef int (*command_func_ptr)(struct Superblock*, struct Inode*, FILE*, char*);
+typedef int (*command_func_ptr)(struct Superblock*, struct Inode*, uint32_t*, FILE*, char*);
 
 extern const command_func_ptr commands[];
 extern const char*            command_names[];

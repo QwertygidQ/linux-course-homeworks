@@ -106,7 +106,6 @@ int main(int argc, char *argv[]) {
     const size_t inode_table_size = INODE_SIZE * superblock.total_inodes;
     const size_t inode_table_blocks = DIV_CEIL(inode_table_size, superblock.block_size);
 
-    superblock.free_blocks -= inode_table_blocks;
     for (size_t i = 1; i <= inode_table_blocks; ++i) {
         if (set_block_use(&superblock, i, 1))
             return EXIT_FAILURE;
@@ -123,7 +122,7 @@ int main(int argc, char *argv[]) {
     };
 
     const size_t n_root_dot_blocks = DIV_CEIL(DIRECTORY_ENTRY_SIZE, superblock.block_size);
-    uint32_t *block_ids = calloc(sizeof(uint32_t), n_root_dot_blocks);
+    uint32_t *block_ids = calloc(n_root_dot_blocks, sizeof(uint32_t));
     if (block_ids == NULL) {
         fprintf(stderr, "[mkfs] Failed to allocate memory for block_ids\n");
         return EXIT_FAILURE;
@@ -136,7 +135,6 @@ int main(int argc, char *argv[]) {
         if (set_block_use(&superblock, block_id, 1))
             return EXIT_FAILURE;
     }
-    superblock.free_blocks -= n_root_dot_blocks;
 
     if (write_blocks(file, &superblock, block_ids, n_root_dot_blocks, &root_dot, DIRECTORY_ENTRY_SIZE))
         return EXIT_FAILURE;
@@ -163,7 +161,6 @@ int main(int argc, char *argv[]) {
     if(write_inode(file, &superblock, &root, 1))
         return EXIT_FAILURE;
 
-    --superblock.free_inodes;
     if(set_inode_use(&superblock, 1, 1))
         return EXIT_FAILURE;
 

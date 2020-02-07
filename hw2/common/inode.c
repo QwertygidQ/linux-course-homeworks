@@ -206,3 +206,13 @@ int get_all_block_ids(
     free(double_indirect_map);
     return finalize_get_all_block_ids(block_ids, n_block_ids, offset);
 }
+
+int append_block_ids(
+     FILE *file,
+     const struct Superblock *superblock,
+     const struct Inode *inode,
+     const uint32_t *block_ids,
+     const size_t n_block_ids
+) {
+    return 0;
+}

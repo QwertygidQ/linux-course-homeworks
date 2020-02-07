@@ -191,6 +191,8 @@ int set_block_use(struct Superblock *superblock, const uint32_t block_id, const 
     else
         *bitmap_uint8 &= ~mask;
 
+    --superblock->free_blocks;
+
     return 0;
 }
 
@@ -212,6 +214,8 @@ int set_inode_use(struct Superblock *superblock, const uint32_t inode_id, const 
         *bitmap_uint8 |= mask;
     else
         *bitmap_uint8 &= ~mask;
+
+    --superblock->free_inodes;
 
     return 0;
 }
@@ -242,4 +246,54 @@ int get_inode_use(const struct Superblock *superblock, const uint32_t inode_id) 
         bitmap_uint8 >>= (8 - inode_id % 8);
 
     return bitmap_uint8 & 1;
+}
+
+int get_unused_blocks(const struct Superblock *superblock, uint32_t *blocks, const size_t n_blocks) {
+    if (n_blocks > superblock->free_blocks) {
+        fprintf(stderr, "Not enough free blocks\n");
+        return 1;
+    }
+
+    size_t offset = 0;
+    for (uint32_t i = 1; i <= superblock->total_blocks && offset < n_blocks; ++i) {
+        int block_use = get_block_use(superblock, i);
+        if (block_use == -1) {
+            return 1;
+        } else if (block_use == 0) {
+            *(blocks + offset) = i;
+            ++offset;
+        }
+    }
+
+    if (offset < n_blocks) {
+        fprintf(stderr, "Failed to fill the blocks pointer\n");
+        return 1;
+    }
+
+    return 0;
+}
+
+int get_unused_inodes(const struct Superblock *superblock, uint32_t *inodes, const size_t n_inodes) {
+    if (n_inodes > superblock->free_blocks) {
+        fprintf(stderr, "Not enough inodes\n");
+        return 1;
+    }
+
+    size_t offset = 0;
+    for (uint32_t i = 1; i <= superblock->total_blocks && offset < n_inodes; ++i) {
+        int inode_use = get_inode_use(superblock, i);
+        if (inode_use == -1) {
+            return 1;
+        } else if (inode_use == 0) {
+            *(inodes + offset) = i;
+            ++offset;
+        }
+    }
+
+    if (offset < n_inodes) {
+        fprintf(stderr, "Failed to fill the inodes pointer\n");
+        return 1;
+    }
+
+    return 0;
 }

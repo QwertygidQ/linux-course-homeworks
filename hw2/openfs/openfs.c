@@ -32,6 +32,8 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
+    uint32_t inode_id = 1;
+
     int running = 1;
     while (running) {
         printf("> ");
@@ -65,7 +67,7 @@ int main(int argc, char* argv[]) {
         int command_recognized = 0;
         for (size_t i = 0; i < n_commands; ++i) {
             if (strcmp(command, command_names[i]) == 0) {
-                int return_code = commands[i](&superblock, &current_dir, file, args);
+                int return_code = commands[i](&superblock, &current_dir, &inode_id, file, args);
                 if (return_code == RETURN_ERROR) {
                     fprintf(stderr, "[openfs] Command returned the error code RETURN_ERROR\n");
                 } else if (return_code == RETURN_CRITICAL) {
