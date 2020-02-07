@@ -9,7 +9,7 @@
 #include "../common/div_ceil.h"
 #include "../common/inode.h"
 #include "../common/superblock.h"
-#include "../common/write_ops.h"
+#include "../common/block_ops.h"
 
 #include "defaults.h"
 

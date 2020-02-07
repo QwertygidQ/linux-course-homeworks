@@ -1,5 +1,5 @@
-#ifndef WRITE_OPS_H
-#define WRITE_OPS_H
+#ifndef BLOCK_OPS_H
+#define BLOCK_OPS_H
 
 #include <stdlib.h>
 #include <stdio.h>
