@@ -57,7 +57,7 @@ int ls(
 
     struct DirectoryEntry *entries = malloc(current_dir->file_size);
     for (size_t i = 0; i < n_block_ids; ++i) {
-        if (read_blocks(file, superblock, block_ids + i, 1, entries + i, DIRECTORY_ENTRY_SIZE)) {
+        if (read_blocks(file, superblock, block_ids + i, 1, (uint8_t *)(entries + i), DIRECTORY_ENTRY_SIZE)) {
             fprintf(stderr, "[openfs] Failed to read the directory contents\n");
             free(entries);
             free(block_ids);
@@ -149,7 +149,7 @@ static int create_file(
         }
     }
 
-    if (write_blocks(file, superblock, block_ids, entry_blocks, &entry, DIRECTORY_ENTRY_SIZE)) {
+    if (write_blocks(file, superblock, block_ids, entry_blocks, (const uint8_t*)&entry, DIRECTORY_ENTRY_SIZE)) {
         free(block_ids);
         return RETURN_ERROR;
     }

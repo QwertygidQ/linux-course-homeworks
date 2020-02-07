@@ -147,7 +147,16 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (write_blocks(file, &superblock, block_ids, n_root_dot_blocks, &root_dot, DIRECTORY_ENTRY_SIZE)) {
+    if (
+         write_blocks(
+             file,
+             &superblock,
+             block_ids,
+             n_root_dot_blocks,
+             (const uint8_t*)&root_dot,
+             DIRECTORY_ENTRY_SIZE
+         )
+    ) {
         cleanup(file, &superblock);
         return EXIT_FAILURE;
     }

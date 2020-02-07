@@ -72,7 +72,7 @@ static int get_indirect_block_ids(
         return 1;
     }
 
-    if (read_blocks(file, superblock, &indirect_block_id, 1, block_ids, superblock->block_size)) {
+    if (read_blocks(file, superblock, &indirect_block_id, 1, (uint8_t*)block_ids, superblock->block_size)) {
         fprintf(stderr, "Failed to read indirect blocks\n");
         return 1;
     }
