@@ -15,10 +15,12 @@ int help(
      char* args
 ) {
     printf(
-        "help -- shows this message\n"
-        "echo MESSAGE -- prints out MESSAGE\n"
-        "ls -- lists all files in the current directory\n"
+        "help           -- shows this message\n"
+        "echo MESSAGE   -- prints out MESSAGE\n"
+        "ls             -- lists all files in the current directory\n"
         "touch FILENAME -- creates a file called FILENAME\n"
+        "mkdir DIRNAME  -- creates a directory called DIRNAME\n"
+        "quit           -- quits this pseudo-shell\n"
     );
 
     return RETURN_SUCCESS;
@@ -54,11 +56,13 @@ int ls(
     }
 
     struct DirectoryEntry *entries = malloc(current_dir->file_size);
-    if (read_blocks(file, superblock, block_ids, n_block_ids, entries, current_dir->file_size)) {
-        fprintf(stderr, "[openfs] Failed to read the directory contents\n");
-        free(entries);
-        free(block_ids);
-        return RETURN_ERROR;
+    for (size_t i = 0; i < n_block_ids; ++i) {
+        if (read_blocks(file, superblock, block_ids + i, 1, entries + i, DIRECTORY_ENTRY_SIZE)) {
+            fprintf(stderr, "[openfs] Failed to read the directory contents\n");
+            free(entries);
+            free(block_ids);
+            return RETURN_ERROR;
+        }
     }
 
     const size_t n_entries = current_dir->file_size / DIRECTORY_ENTRY_SIZE;
@@ -85,12 +89,13 @@ int ls(
     return RETURN_SUCCESS;
 }
 
-int touch(
+static int create_file(
      struct Superblock *superblock,
      struct Inode* current_dir,
      uint32_t *dir_inode_id,
      FILE *file,
-     char* args
+     char* args,
+     const int filetype
 ) {
     if (args == NULL) {
         fprintf(stderr, "[openfs] Args cannot be NULL for this command\n");
@@ -108,7 +113,7 @@ int touch(
 
     struct DirectoryEntry entry = {
         .inode_id = inode_id,
-        .filetype = FILETYPE_FILE,
+        .filetype = filetype,
         .name_len = name_len
     };
     strncpy(entry.name, args, MAX_FILENAME_LEN);
@@ -130,6 +135,8 @@ int touch(
         return RETURN_ERROR;
     }
 
+    current_dir->file_size += DIRECTORY_ENTRY_SIZE;
+
     if (set_inode_use(superblock, inode_id, 1)) {
         free(block_ids);
         return RETURN_ERROR;
@@ -142,12 +149,12 @@ int touch(
         }
     }
 
-    if (write_inode(file, superblock, current_dir, *dir_inode_id)) {
+    if (write_blocks(file, superblock, block_ids, entry_blocks, &entry, DIRECTORY_ENTRY_SIZE)) {
         free(block_ids);
         return RETURN_ERROR;
     }
 
-    if (write_blocks(file, superblock, block_ids, entry_blocks, &entry, DIRECTORY_ENTRY_SIZE)) {
+    if (write_inode(file, superblock, current_dir, *dir_inode_id)) {
         free(block_ids);
         return RETURN_ERROR;
     }
@@ -161,16 +168,38 @@ int touch(
     return RETURN_SUCCESS;
 }
 
+int touch(
+     struct Superblock *superblock,
+     struct Inode* current_dir,
+     uint32_t *dir_inode_id,
+     FILE *file,
+     char* args
+) {
+    return create_file(superblock, current_dir, dir_inode_id, file, args, FILETYPE_FILE);
+}
+
+int mkdir(
+     struct Superblock *superblock,
+     struct Inode* current_dir,
+     uint32_t *dir_inode_id,
+     FILE *file,
+     char* args
+) {
+    return create_file(superblock, current_dir, dir_inode_id, file, args, FILETYPE_DIRECTORY);
+}
+
 const command_func_ptr commands[] = {
     &help,
     &echo,
     &ls,
-    &touch
+    &touch,
+    &mkdir
 };
 const char* command_names[] = {
     "help",
     "echo",
     "ls",
-    "touch"
+    "touch",
+    "mkdir"
 };
 const size_t n_commands = sizeof(command_names) / sizeof(const char*);

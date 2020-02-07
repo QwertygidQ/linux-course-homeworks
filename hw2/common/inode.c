@@ -1,5 +1,7 @@
 #include "inode.h"
 
+#include <string.h>
+
 #include "block_ops.h"
 
 static int seek_to_inode(
@@ -210,9 +212,25 @@ int get_all_block_ids(
 int append_block_ids(
      FILE *file,
      const struct Superblock *superblock,
-     const struct Inode *inode,
+     struct Inode *inode,
      const uint32_t *block_ids,
      const size_t n_block_ids
 ) {
+    size_t offset = 0;
+
+    int first_empty_direct = -1;
+    for (size_t i = 0; i < INDIRECT_BLOCK; ++i) {
+        if (inode->blocks[i] == 0) {
+            first_empty_direct = i;
+            break;
+        }
+    }
+
+    if (first_empty_direct != -1) {
+        const size_t write_len = INDIRECT_BLOCK - first_empty_direct;
+        memcpy(&(inode->blocks[first_empty_direct]), block_ids + offset, write_len);
+        offset += write_len;
+    }
+
     return 0;
 }
