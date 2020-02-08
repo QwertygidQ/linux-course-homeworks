@@ -155,6 +155,11 @@ int get_block_ids(
         }
     }
 
+    if (offset == 0) {
+        *n_block_ids = 0;
+        return 0;
+    }
+
     if (offset < INDIRECT_BLOCK || inode->blocks[INDIRECT_BLOCK] == 0)
         return finalize_get_all_block_ids(block_ids, n_block_ids, offset);
 

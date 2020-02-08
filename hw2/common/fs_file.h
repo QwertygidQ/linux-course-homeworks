@@ -4,13 +4,15 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "directory_entry.h"
 #include "inode.h"
 #include "superblock.h"
 
 struct FsFile {
-    char         *fullname;
-    uint32_t     inode_id;
     struct Inode inode;
+    uint32_t     inode_id;
+    uint8_t      filetype;
+    char         *fullname;
 };
 
 int load_contents(

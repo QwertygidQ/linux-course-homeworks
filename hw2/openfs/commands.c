@@ -5,7 +5,9 @@
 #include "../common/block_ops.h"
 #include "../common/constants.h"
 #include "../common/directory_entry.h"
+#include "../common/directory_ops.h"
 #include "../common/div_ceil.h"
+#include "../common/misc.h"
 
 int help(
      struct Superblock *superblock,
@@ -19,6 +21,8 @@ int help(
         "ls             -- lists all files in the current directory\n"
         "touch FILENAME -- creates a file called FILENAME\n"
         "mkdir DIRNAME  -- creates a directory called DIRNAME\n"
+        "cd DIRNAME     -- changes your current directory to DIRNAME\n"
+        "stat FILE      -- get information about FILE\n"
         "quit           -- quits this pseudo-shell\n"
     );
 
@@ -59,9 +63,6 @@ int ls(
      FILE *file,
      char* args
 ) {
-    if (update(file, superblock, fsfile))
-        return RETURN_ERROR;
-
     struct DirectoryEntry *entries;
     if (load_contents(file, superblock, fsfile, (uint8_t**)&entries)) {
         fprintf(stderr, "Failed to load directory contents\n");
@@ -70,22 +71,8 @@ int ls(
 
     const size_t n_entries = fsfile->inode.file_size / DIRECTORY_ENTRY_SIZE;
     printf("Total %ld\n", n_entries);
-    for (size_t i = 0; i < n_entries; ++i) {
-        char *filetype_str;
-        switch (entries[i].filetype) {
-        case FILETYPE_DIRECTORY:
-            filetype_str = "DIR";
-            break;
-        case FILETYPE_FILE:
-            filetype_str = "FILE";
-            break;
-        default:
-            filetype_str = "???";
-            break;
-        }
-
-        printf("%d\t%s\t%s\n", entries[i].inode_id, filetype_str, entries[i].name);
-    }
+    for (size_t i = 0; i < n_entries; ++i)
+        printf("%d\t%s\t%s\n", entries[i].inode_id, filetype_str(entries[i].filetype), entries[i].name);
 
     free(entries);
     return RETURN_SUCCESS;
@@ -96,15 +83,13 @@ static int create_file(
      struct FsFile *fsfile,
      FILE *file,
      char* args,
-     const int filetype
+     const uint8_t filetype,
+     struct FsFile *created
 ) {
     if (args == NULL) {
         fprintf(stderr, "[openfs] Args cannot be NULL for this command\n");
         return RETURN_ERROR;
     }
-
-    //if (update(file, superblock, fsfile))
-    //    return RETURN_ERROR;
 
     const size_t name_len = strlen(args);
     if (name_len > MAX_FILENAME_LEN) {
@@ -160,13 +145,38 @@ static int create_file(
         return RETURN_ERROR;
     }
 
+    struct Inode inode = {
+        .file_size   = 0,
+        .links_count = 1,
+        .blocks      = {0}
+    };
+
+    if (write_inode(file, superblock, &inode, inode_id)) {
+        fprintf(stderr, "Failed to write the new file inode");
+        return RETURN_ERROR;
+    }
+
+    if (created) {
+        *created = (struct FsFile){
+            .inode_id = inode_id,
+            .inode    = inode,
+            .filetype = filetype
+        };
+        if (path_join(fsfile->fullname, args, &created->fullname))
+            return RETURN_ERROR;
+    }
+
     if (write_inode(file, superblock, &fsfile->inode, fsfile->inode_id)) {
         fprintf(stderr, "Failed to write the current directory inode");
+        if (created)
+            free(created->fullname);
         return RETURN_ERROR;
     }
 
     if (write_superblock(superblock, file)) {
         fprintf(stderr, "Failed to write the superblock");
+        if (created)
+            free(created->fullname);
         return RETURN_ERROR;
     }
 
@@ -179,23 +189,7 @@ int touch(
      FILE *file,
      char* args
 ) {
-    if (strcmp(args, "a") == 0) {
-        for (int i = 1; i <= 77; ++i) {
-            char str[1000] = {0};
-            sprintf(str, "%d", i);
-            printf("%s\n", str);
-
-            create_file(superblock, fsfile, file, str, FILETYPE_FILE);
-        }
-
-        create_file(superblock, fsfile, file, "A", FILETYPE_FILE);
-        create_file(superblock, fsfile, file, "B", FILETYPE_FILE);
-        create_file(superblock, fsfile, file, "C", FILETYPE_FILE);
-
-        return RETURN_SUCCESS;
-    }
-
-    return create_file(superblock, fsfile, file, args, FILETYPE_FILE);
+    return create_file(superblock, fsfile, file, args, FILETYPE_FILE, NULL);
 }
 
 int mkdir(
@@ -204,8 +198,102 @@ int mkdir(
      FILE *file,
      char* args
 ) {
-    // TODO: add creation of . and ..
-    return create_file(superblock, fsfile, file, args, FILETYPE_DIRECTORY);
+    struct FsFile dir_fsfile;
+    if (create_file(superblock, fsfile, file, args, FILETYPE_DIRECTORY, &dir_fsfile))
+        return RETURN_ERROR;
+
+    struct DirectoryEntry entries[] = {
+        {
+            .inode_id = dir_fsfile.inode_id,
+            .filetype = FILETYPE_DIRECTORY,
+            .name_len = 1,
+            .name     = "."
+        },
+        {
+            .inode_id = fsfile->inode_id,
+            .filetype = FILETYPE_DIRECTORY,
+            .name_len = 2,
+            .name     = ".."
+        }
+    };
+
+    if (write_contents(file, superblock, &dir_fsfile, (const uint8_t*)entries, DIRECTORY_ENTRY_SIZE * 2)) {
+        fprintf(stderr, "Failed to create . and .. for the created directory\n");
+        free(dir_fsfile.fullname);
+        return RETURN_ERROR;
+    }
+
+    ++dir_fsfile.inode.links_count;
+    if (write_inode(file, superblock, &dir_fsfile.inode, dir_fsfile.inode_id)) {
+        fprintf(stderr, "Failed to rewrite the old inode for the created directory\n");
+        free(dir_fsfile.fullname);
+        return RETURN_ERROR;
+    }
+
+    ++fsfile->inode.links_count;
+    if (write_inode(file, superblock, &fsfile->inode, fsfile->inode_id)) {
+        fprintf(stderr, "Failed to rewrite the old inode for the current directory\n");
+        free(dir_fsfile.fullname);
+        return RETURN_ERROR;
+    }
+
+    free(dir_fsfile.fullname);
+    return RETURN_SUCCESS;
+}
+
+int cd(
+     struct Superblock *superblock,
+     struct FsFile *fsfile,
+     FILE *file,
+     char* args
+) {
+    if (args == NULL) {
+        fprintf(stderr, "[openfs] Args cannot be NULL for this command\n");
+        return RETURN_ERROR;
+    }
+
+    struct FsFile found_file;
+    if (find_file(file, superblock, fsfile, args, &found_file))
+        return RETURN_ERROR;
+
+    if (found_file.filetype != FILETYPE_DIRECTORY) {
+        fprintf(stderr, "Is not a directory\n");
+        return RETURN_ERROR;
+    }
+
+    *fsfile = found_file;
+    return RETURN_SUCCESS;
+}
+
+int stat(
+     struct Superblock *superblock,
+     struct FsFile *fsfile,
+     FILE *file,
+     char* args
+) {
+    if (args == NULL) {
+        fprintf(stderr, "[openfs] Args cannot be NULL for this command\n");
+        return RETURN_ERROR;
+    }
+
+    struct FsFile found_file;
+    if (find_file(file, superblock, fsfile, args, &found_file))
+        return RETURN_ERROR;
+
+    printf(
+        "Full filename: %s\n"
+        "Inode #%d\n"
+        "Filetype: %s\n"
+        "Filesize: %d\n"
+        "Links count: %d\n",
+        found_file.fullname,
+        found_file.inode_id,
+        filetype_str(found_file.filetype),
+        found_file.inode.file_size,
+        found_file.inode.links_count
+    );
+
+    return RETURN_SUCCESS;
 }
 
 const command_func_ptr commands[] = {
@@ -213,13 +301,17 @@ const command_func_ptr commands[] = {
     &echo,
     &ls,
     &touch,
-    &mkdir
+    &mkdir,
+    &cd,
+    &stat
 };
 const char* command_names[] = {
     "help",
     "echo",
     "ls",
     "touch",
-    "mkdir"
+    "mkdir",
+    "cd",
+    "stat"
 };
 const size_t n_commands = sizeof(command_names) / sizeof(const char*);

@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "../common/fs_file.h"
+#include "../common/directory_entry.h"
 #include "../common/inode.h"
 #include "../common/superblock.h"
 
@@ -36,12 +37,13 @@ int main(int argc, char* argv[]) {
     struct FsFile current_dir = {
         .fullname = "/",
         .inode_id = 1,
-        .inode    = inode
+        .inode    = inode,
+        .filetype = FILETYPE_DIRECTORY
     };
 
     int running = 1;
     while (running) {
-        printf("> ");
+        printf("%s > ", current_dir.fullname);
 
         char command[MAX_COMMAND_LEN];
         if(fgets(command, MAX_COMMAND_LEN, stdin) != command) {
