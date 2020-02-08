@@ -176,7 +176,7 @@ int get_block_ids(
 
     offset += n_indirect_blocks;
 
-    if (offset < indirect_len + INDIRECT_BLOCK || inode->blocks[DOUBLE_INDIRECT_BLOCK] == 0)
+    if (n_indirect_blocks < indirect_len || inode->blocks[DOUBLE_INDIRECT_BLOCK] == 0)
         return finalize_get_all_block_ids(block_ids, n_block_ids, offset);
 
     // Double indirect access
@@ -233,7 +233,6 @@ int get_block_ids(
 static int allocate_indirect_block(
      FILE *file,
      struct Superblock *superblock,
-     struct Inode *inode,
      uint32_t *where
 ) {
     uint32_t indirect_block_id;
@@ -267,7 +266,6 @@ static int allocate_indirect_block(
 static int fill_indirect_block(
      FILE *file,
      struct Superblock *superblock,
-     struct Inode *inode,
      const uint32_t block_id,
      const uint32_t *data,
      const size_t n_data,
@@ -323,7 +321,7 @@ int set_block_ids(
 
     // Indirect addressing
     if (inode->blocks[INDIRECT_BLOCK] == 0) {
-        if (allocate_indirect_block(file, superblock, inode, &inode->blocks[INDIRECT_BLOCK]))
+        if (allocate_indirect_block(file, superblock, &inode->blocks[INDIRECT_BLOCK]))
             return 1;
     } else {
         int block_use = get_block_use(superblock, inode->blocks[INDIRECT_BLOCK]);
@@ -333,7 +331,7 @@ int set_block_ids(
         }
 
         if (!block_use) {
-            if (allocate_indirect_block(file, superblock, inode, &inode->blocks[INDIRECT_BLOCK]))
+            if (allocate_indirect_block(file, superblock, &inode->blocks[INDIRECT_BLOCK]))
                 return 1;
         }
     }
@@ -342,7 +340,6 @@ int set_block_ids(
          fill_indirect_block(
              file,
              superblock,
-             inode,
              inode->blocks[INDIRECT_BLOCK],
              block_ids,
              n_block_ids,
@@ -357,7 +354,7 @@ int set_block_ids(
 
     // Double indirect addressing
     if (inode->blocks[DOUBLE_INDIRECT_BLOCK] == 0) {
-        if (allocate_indirect_block(file, superblock, inode, &inode->blocks[DOUBLE_INDIRECT_BLOCK]))
+        if (allocate_indirect_block(file, superblock, &inode->blocks[DOUBLE_INDIRECT_BLOCK]))
             return 1;
     } else {
         int block_use = get_block_use(superblock, inode->blocks[DOUBLE_INDIRECT_BLOCK]);
@@ -367,7 +364,7 @@ int set_block_ids(
         }
 
         if (!block_use) {
-            if (allocate_indirect_block(file, superblock, inode, &inode->blocks[DOUBLE_INDIRECT_BLOCK]))
+            if (allocate_indirect_block(file, superblock, &inode->blocks[DOUBLE_INDIRECT_BLOCK]))
                 return 1;
         }
     }
@@ -397,7 +394,7 @@ int set_block_ids(
     for (size_t i = 0; i < indirect_len && offset < n_block_ids; ++i) {
         uint32_t *current_block = double_indirect_map + i;
         if (*current_block == 0) {
-            if (allocate_indirect_block(file, superblock, inode, current_block)) {
+            if (allocate_indirect_block(file, superblock, current_block)) {
                 free(double_indirect_map);
                 return 1;
             }
@@ -410,7 +407,7 @@ int set_block_ids(
             }
 
             if (!block_use) {
-                if (allocate_indirect_block(file, superblock, inode, current_block)) {
+                if (allocate_indirect_block(file, superblock, current_block)) {
                     free(double_indirect_map);
                     return 1;
                 }
@@ -421,7 +418,6 @@ int set_block_ids(
             fill_indirect_block(
                 file,
                 superblock,
-                inode,
                 *current_block,
                 block_ids,
                 n_block_ids,
@@ -452,9 +448,11 @@ int clear_block_ids(
     for (size_t i = 0; i < n_used_block_ids; ++i) {
         if (set_block_use(superblock, used_block_ids[i], 0)) {
             fprintf(stderr, "Failed to unset block use\n");
+            free(used_block_ids);
             return 1;
         }
     }
 
+    free(used_block_ids);
     return 0;
 }

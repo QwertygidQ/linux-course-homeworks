@@ -26,6 +26,8 @@ static int seek_to_block(
         fprintf(stderr, "Failed to seek to the block\n");
         return 1;
     }
+
+    return 0;
 }
 
 int read_blocks(

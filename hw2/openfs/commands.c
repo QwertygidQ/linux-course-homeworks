@@ -69,7 +69,7 @@ int ls(
     }
 
     const size_t n_entries = fsfile->inode.file_size / DIRECTORY_ENTRY_SIZE;
-    printf("Total %d\n", n_entries);
+    printf("Total %ld\n", n_entries);
     for (size_t i = 0; i < n_entries; ++i) {
         char *filetype_str;
         switch (entries[i].filetype) {
@@ -103,8 +103,8 @@ static int create_file(
         return RETURN_ERROR;
     }
 
-    if (update(file, superblock, fsfile))
-        return RETURN_ERROR;
+    //if (update(file, superblock, fsfile))
+    //    return RETURN_ERROR;
 
     const size_t name_len = strlen(args);
     if (name_len > MAX_FILENAME_LEN) {
@@ -120,7 +120,7 @@ static int create_file(
         .filetype = filetype,
         .name_len = name_len
     };
-    strncpy(entry.name, args, MAX_FILENAME_LEN);
+    strncpy(entry.name, args, MAX_FILENAME_LEN - 1);
 
     struct DirectoryEntry *entries;
     if (load_contents(file, superblock, fsfile, (uint8_t**)&entries)) {
@@ -129,11 +129,7 @@ static int create_file(
     }
 
     for (size_t i = 0; i < fsfile->inode.file_size / DIRECTORY_ENTRY_SIZE; ++i) {
-        uint8_t min_len = entry.name_len;
-        if (entries[i].name_len < min_len)
-            min_len = entries[i].name_len;
-
-        if (strncmp(entries[i].name, entry.name, min_len) == 0) {
+        if (strcmp(entries[i].name, entry.name) == 0) {
             fprintf(stderr, "Cannot create the file -- this filename is already used\n");
             free(entries);
             return RETURN_ERROR;
@@ -183,6 +179,22 @@ int touch(
      FILE *file,
      char* args
 ) {
+    if (strcmp(args, "a") == 0) {
+        for (int i = 1; i <= 77; ++i) {
+            char str[1000] = {0};
+            sprintf(str, "%d", i);
+            printf("%s\n", str);
+
+            create_file(superblock, fsfile, file, str, FILETYPE_FILE);
+        }
+
+        create_file(superblock, fsfile, file, "A", FILETYPE_FILE);
+        create_file(superblock, fsfile, file, "B", FILETYPE_FILE);
+        create_file(superblock, fsfile, file, "C", FILETYPE_FILE);
+
+        return RETURN_SUCCESS;
+    }
+
     return create_file(superblock, fsfile, file, args, FILETYPE_FILE);
 }
 

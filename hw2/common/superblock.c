@@ -186,12 +186,23 @@ int set_block_use(struct Superblock *superblock, const uint32_t block_id, const 
     else
         mask = 1 << (8 - block_id % 8);
 
-    if (is_used)
-        *bitmap_uint8 |= mask;
-    else
-        *bitmap_uint8 &= ~mask;
+    int was_used = get_block_use(superblock, block_id);
+    if (was_used == -1) {
+        fprintf(stderr, "Failed to check whether the block was used\n");
+        return 1;
+    }
 
-    --superblock->free_blocks;
+    if (is_used) {
+        if (!was_used)
+            --superblock->free_blocks;
+
+        *bitmap_uint8 |= mask;
+    } else {
+        if (was_used)
+            ++superblock->free_blocks;
+
+        *bitmap_uint8 &= ~mask;
+    }
 
     return 0;
 }
@@ -210,12 +221,23 @@ int set_inode_use(struct Superblock *superblock, const uint32_t inode_id, const 
     else
         mask = 1 << (8 - inode_id % 8);
 
-    if (is_used)
-        *bitmap_uint8 |= mask;
-    else
-        *bitmap_uint8 &= ~mask;
+    int was_used = get_inode_use(superblock, inode_id);
+    if (was_used == -1) {
+        fprintf(stderr, "Failed to check whether the inode was used\n");
+        return 1;
+    }
 
-    --superblock->free_inodes;
+    if (is_used) {
+        if (!was_used)
+            --superblock->free_inodes;
+
+        *bitmap_uint8 |= mask;
+    } else {
+        if (was_used)
+            ++superblock->free_inodes;
+
+        *bitmap_uint8 &= ~mask;
+    }
 
     return 0;
 }
