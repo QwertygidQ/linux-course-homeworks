@@ -8,7 +8,7 @@
 
 int path_join(const char *p1, const char *p2, char **result) {
     *result = malloc(strlen(p1) + 1 + strlen(p2));
-    if (!result) {
+    if (!*result) {
         fprintf(stderr, "Failed to allocate memory for path joining\n");
         return 1;
     }

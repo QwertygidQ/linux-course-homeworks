@@ -58,7 +58,7 @@ int ls(
     }
 
     const size_t n_entries = fsfile->inode.file_size / DIRECTORY_ENTRY_SIZE;
-    printf("Total %ld\n", n_entries);
+    printf("Total %d\n", n_entries);
     for (size_t i = 0; i < n_entries; ++i)
         printf("%d\t%s\t%s\n", entries[i].inode_id, filetype_str(entries[i].filetype), entries[i].name);
 
