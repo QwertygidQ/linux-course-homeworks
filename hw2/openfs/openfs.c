@@ -3,10 +3,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../common/fs_file.h"
-#include "../common/directory_entry.h"
-#include "../common/inode.h"
-#include "../common/superblock.h"
+#include "../filesystem/fs_file.h"
+#include "../filesystem/directory_entry.h"
+#include "../filesystem/inode.h"
+#include "../filesystem/superblock.h"
 
 #include "commands.h"
 

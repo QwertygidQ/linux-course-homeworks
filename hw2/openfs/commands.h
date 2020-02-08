@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "../common/fs_file.h"
-#include "../common/inode.h"
-#include "../common/superblock.h"
+#include "../filesystem/fs_file.h"
+#include "../filesystem/inode.h"
+#include "../filesystem/superblock.h"
 
 typedef int (*command_func_ptr)(struct Superblock*, struct FsFile *fsfile, FILE*, char*);
 

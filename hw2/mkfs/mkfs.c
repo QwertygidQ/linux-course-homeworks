@@ -4,12 +4,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../common/constants.h"
-#include "../common/directory_entry.h"
-#include "../common/div_ceil.h"
-#include "../common/inode.h"
-#include "../common/superblock.h"
-#include "../common/block_ops.h"
+#include "../filesystem/constants.h"
+#include "../filesystem/directory_entry.h"
+#include "../filesystem/div_ceil.h"
+#include "../filesystem/inode.h"
+#include "../filesystem/superblock.h"
+#include "../filesystem/block_ops.h"
 
 #include "defaults.h"
 

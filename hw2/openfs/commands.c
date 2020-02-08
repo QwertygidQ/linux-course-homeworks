@@ -2,12 +2,12 @@
 
 #include <string.h>
 
-#include "../common/block_ops.h"
-#include "../common/constants.h"
-#include "../common/directory_entry.h"
-#include "../common/directory_ops.h"
-#include "../common/div_ceil.h"
-#include "../common/misc.h"
+#include "../filesystem/block_ops.h"
+#include "../filesystem/constants.h"
+#include "../filesystem/directory_entry.h"
+#include "../filesystem/directory_ops.h"
+#include "../filesystem/div_ceil.h"
+#include "../filesystem/misc.h"
 
 int help(
      struct Superblock *superblock,

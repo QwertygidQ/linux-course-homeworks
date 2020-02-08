@@ -2,7 +2,7 @@
 
 A small ext-like filesystem with a shell.
 
-common/ -- .h/.c files that are used in both `mkfs` and `openfs`
+filesystem/ -- main logic of the filesystem
 
 mkfs/ -- source code for `mkfs`
 

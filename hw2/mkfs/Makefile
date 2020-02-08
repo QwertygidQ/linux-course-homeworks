@@ -1,2 +1,2 @@
 all:
-	gcc -o mkfs mkfs.c ../common/*.c -std=c99
+	gcc -o mkfs mkfs.c ../filesystem/*.c -std=c99

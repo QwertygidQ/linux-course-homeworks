@@ -1,2 +1,2 @@
 all:
-	gcc -o openfs openfs.c commands.c ../common/*.c -std=c99
+	gcc -o openfs openfs.c commands.c ../filesystem/*.c -std=c99
