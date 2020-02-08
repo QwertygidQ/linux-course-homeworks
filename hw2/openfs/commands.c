@@ -39,12 +39,29 @@ int echo(
     return RETURN_SUCCESS;
 }
 
+static int update(FILE *file, struct Superblock *superblock, struct FsFile *fsfile) {
+    if (read_superblock(superblock, file)) {
+        fprintf(stderr, "Failed to update the superblock\n");
+        return 1;
+    }
+
+    if (read_inode(file, superblock, &fsfile->inode, fsfile->inode_id)) {
+        fprintf(stderr, "Failed to update the inode\n");
+        return 1;
+    }
+
+    return 0;
+}
+
 int ls(
      struct Superblock *superblock,
      struct FsFile *fsfile,
      FILE *file,
      char* args
 ) {
+    if (update(file, superblock, fsfile))
+        return RETURN_ERROR;
+
     struct DirectoryEntry *entries;
     if (load_contents(file, superblock, fsfile, (uint8_t**)&entries)) {
         fprintf(stderr, "Failed to load directory contents\n");
@@ -86,6 +103,9 @@ static int create_file(
         return RETURN_ERROR;
     }
 
+    if (update(file, superblock, fsfile))
+        return RETURN_ERROR;
+
     const size_t name_len = strlen(args);
     if (name_len > MAX_FILENAME_LEN) {
         fprintf(stderr, "[openfs] Filename can be at most %d characters\n", MAX_FILENAME_LEN);
@@ -106,6 +126,18 @@ static int create_file(
     if (load_contents(file, superblock, fsfile, (uint8_t**)&entries)) {
         fprintf(stderr, "Failed to load directory contents\n");
         return RETURN_ERROR;
+    }
+
+    for (size_t i = 0; i < fsfile->inode.file_size / DIRECTORY_ENTRY_SIZE; ++i) {
+        uint8_t min_len = entry.name_len;
+        if (entries[i].name_len < min_len)
+            min_len = entries[i].name_len;
+
+        if (strncmp(entries[i].name, entry.name, min_len) == 0) {
+            fprintf(stderr, "Cannot create the file -- this filename is already used\n");
+            free(entries);
+            return RETURN_ERROR;
+        }
     }
 
     const size_t new_size = fsfile->inode.file_size + DIRECTORY_ENTRY_SIZE;
