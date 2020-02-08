@@ -10,6 +10,20 @@
 
 #include "commands.h"
 
+static int update(FILE *file, struct Superblock *superblock, struct FsFile *fsfile) {
+    if (read_superblock(superblock, file)) {
+        fprintf(stderr, "[openfs] Failed to update the superblock\n");
+        return 1;
+    }
+
+    if (read_inode(file, superblock, &fsfile->inode, fsfile->inode_id)) {
+        fprintf(stderr, "[openfs] Failed to update the inode\n");
+        return 1;
+    }
+
+    return 0;
+}
+
 int main(int argc, char* argv[]) {
     if (argc != 2) {
         fprintf(stderr, "Usage: %s FILE\n", argv[0]);
@@ -43,6 +57,7 @@ int main(int argc, char* argv[]) {
 
     int running = 1;
     while (running) {
+        update(file, &superblock, &current_dir);
         printf("%s > ", current_dir.fullname);
 
         char command[MAX_COMMAND_LEN];

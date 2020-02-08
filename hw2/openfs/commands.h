@@ -15,6 +15,7 @@ extern const char*            command_names[];
 extern const size_t           n_commands;
 
 #define MAX_COMMAND_LEN 255
+#define MAX_EDIT_LEN    10000
 
 #define RETURN_SUCCESS  0
 #define RETURN_ERROR    1

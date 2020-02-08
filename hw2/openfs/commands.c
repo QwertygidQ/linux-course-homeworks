@@ -23,6 +23,8 @@ int help(
         "mkdir DIRNAME  -- creates a directory called DIRNAME\n"
         "cd DIRNAME     -- changes your current directory to DIRNAME\n"
         "stat FILE      -- get information about FILE\n"
+        "edit FILENAME  -- edit the file FILENAME\n"
+        "cat FILENAME   -- print the file FILENAME to stdout\n"
         "quit           -- quits this pseudo-shell\n"
     );
 
@@ -43,20 +45,6 @@ int echo(
     return RETURN_SUCCESS;
 }
 
-static int update(FILE *file, struct Superblock *superblock, struct FsFile *fsfile) {
-    if (read_superblock(superblock, file)) {
-        fprintf(stderr, "Failed to update the superblock\n");
-        return 1;
-    }
-
-    if (read_inode(file, superblock, &fsfile->inode, fsfile->inode_id)) {
-        fprintf(stderr, "Failed to update the inode\n");
-        return 1;
-    }
-
-    return 0;
-}
-
 int ls(
      struct Superblock *superblock,
      struct FsFile *fsfile,
@@ -65,7 +53,7 @@ int ls(
 ) {
     struct DirectoryEntry *entries;
     if (load_contents(file, superblock, fsfile, (uint8_t**)&entries)) {
-        fprintf(stderr, "Failed to load directory contents\n");
+        fprintf(stderr, "[openfs] Failed to load directory contents\n");
         return RETURN_ERROR;
     }
 
@@ -109,13 +97,13 @@ static int create_file(
 
     struct DirectoryEntry *entries;
     if (load_contents(file, superblock, fsfile, (uint8_t**)&entries)) {
-        fprintf(stderr, "Failed to load directory contents\n");
+        fprintf(stderr, "[openfs] Failed to load directory contents\n");
         return RETURN_ERROR;
     }
 
     for (size_t i = 0; i < fsfile->inode.file_size / DIRECTORY_ENTRY_SIZE; ++i) {
         if (strcmp(entries[i].name, entry.name) == 0) {
-            fprintf(stderr, "Cannot create the file -- this filename is already used\n");
+            fprintf(stderr, "[openfs] Cannot create the file -- this filename is already used\n");
             free(entries);
             return RETURN_ERROR;
         }
@@ -124,7 +112,7 @@ static int create_file(
     const size_t new_size = fsfile->inode.file_size + DIRECTORY_ENTRY_SIZE;
     struct DirectoryEntry *temp = realloc(entries, new_size);
     if (!temp) {
-        fprintf(stderr, "Failed to reallocate memory for directory entries\n");
+        fprintf(stderr, "[openfs] Failed to reallocate memory for directory entries\n");
         free(entries);
         return 1;
     }
@@ -133,7 +121,7 @@ static int create_file(
     entries[fsfile->inode.file_size / DIRECTORY_ENTRY_SIZE] = entry;
 
     if (write_contents(file, superblock, fsfile, (const uint8_t*)entries, new_size)) {
-        fprintf(stderr, "Failed to write the new file contents\n");
+        fprintf(stderr, "[openfs] Failed to write the new file contents\n");
         free(entries);
         return 1;
     }
@@ -141,7 +129,7 @@ static int create_file(
     free(entries);
 
     if (set_inode_use(superblock, inode_id, 1)) {
-        fprintf(stderr, "Failed to set inode use\n");
+        fprintf(stderr, "[openfs] Failed to set inode use\n");
         return RETURN_ERROR;
     }
 
@@ -152,7 +140,7 @@ static int create_file(
     };
 
     if (write_inode(file, superblock, &inode, inode_id)) {
-        fprintf(stderr, "Failed to write the new file inode");
+        fprintf(stderr, "[openfs] Failed to write the new file inode");
         return RETURN_ERROR;
     }
 
@@ -167,14 +155,14 @@ static int create_file(
     }
 
     if (write_inode(file, superblock, &fsfile->inode, fsfile->inode_id)) {
-        fprintf(stderr, "Failed to write the current directory inode");
+        fprintf(stderr, "[openfs] Failed to write the current directory inode");
         if (created)
             free(created->fullname);
         return RETURN_ERROR;
     }
 
     if (write_superblock(superblock, file)) {
-        fprintf(stderr, "Failed to write the superblock");
+        fprintf(stderr, "[openfs] Failed to write the superblock");
         if (created)
             free(created->fullname);
         return RETURN_ERROR;
@@ -218,26 +206,32 @@ int mkdir(
     };
 
     if (write_contents(file, superblock, &dir_fsfile, (const uint8_t*)entries, DIRECTORY_ENTRY_SIZE * 2)) {
-        fprintf(stderr, "Failed to create . and .. for the created directory\n");
+        fprintf(stderr, "[openfs] Failed to create . and .. for the created directory\n");
         free(dir_fsfile.fullname);
         return RETURN_ERROR;
     }
 
     ++dir_fsfile.inode.links_count;
     if (write_inode(file, superblock, &dir_fsfile.inode, dir_fsfile.inode_id)) {
-        fprintf(stderr, "Failed to rewrite the old inode for the created directory\n");
+        fprintf(stderr, "[openfs] Failed to rewrite the old inode for the created directory\n");
         free(dir_fsfile.fullname);
         return RETURN_ERROR;
     }
 
     ++fsfile->inode.links_count;
     if (write_inode(file, superblock, &fsfile->inode, fsfile->inode_id)) {
-        fprintf(stderr, "Failed to rewrite the old inode for the current directory\n");
+        fprintf(stderr, "[openfs] Failed to rewrite the old inode for the current directory\n");
         free(dir_fsfile.fullname);
         return RETURN_ERROR;
     }
 
     free(dir_fsfile.fullname);
+
+    if (write_superblock(superblock, file)) {
+        fprintf(stderr, "[openfs] Failed to write the superblock\n");
+        return RETURN_ERROR;
+    }
+
     return RETURN_SUCCESS;
 }
 
@@ -296,6 +290,84 @@ int stat(
     return RETURN_SUCCESS;
 }
 
+int edit(
+     struct Superblock *superblock,
+     struct FsFile *fsfile,
+     FILE *file,
+     char* args
+) {
+    if (args == NULL) {
+        fprintf(stderr, "[openfs] Args cannot be NULL for this command\n");
+        return RETURN_ERROR;
+    }
+
+    struct FsFile found_file;
+    if (find_file(file, superblock, fsfile, args, &found_file))
+        return RETURN_ERROR;
+
+    if (found_file.filetype != FILETYPE_FILE) {
+        fprintf(stderr, "Is not a plain file\n");
+        return RETURN_ERROR;
+    }
+
+    printf("[openfs] Enter the new file contents:\n");
+
+    uint8_t edit_data[MAX_EDIT_LEN];
+    if(fgets(edit_data, MAX_EDIT_LEN, stdin) != (char*)edit_data) {
+        fprintf(stderr, "[openfs] Failed to read the data\n");
+        return RETURN_ERROR;
+    }
+
+    if (write_contents(file, superblock, &found_file, edit_data, strlen(edit_data) * sizeof(uint8_t))) {
+        fprintf(stderr, "[openfs] Failed to write the data\n");
+        return RETURN_ERROR;
+    }
+
+    if (write_inode(file, superblock, &found_file.inode, found_file.inode_id)) {
+        fprintf(stderr, "[openfs] Failed to write the inode\n");
+        return RETURN_ERROR;
+    }
+
+    if (write_superblock(superblock, file)) {
+        fprintf(stderr, "[openfs] Failed to write the superblock\n");
+        return RETURN_ERROR;
+    }
+
+    return 0;
+}
+
+int cat(
+     struct Superblock *superblock,
+     struct FsFile *fsfile,
+     FILE *file,
+     char* args
+) {
+    if (args == NULL) {
+        fprintf(stderr, "[openfs] Args cannot be NULL for this command\n");
+        return RETURN_ERROR;
+    }
+
+    struct FsFile found_file;
+    if (find_file(file, superblock, fsfile, args, &found_file))
+        return RETURN_ERROR;
+
+    if (found_file.filetype != FILETYPE_FILE) {
+        fprintf(stderr, "Is not a plain file\n");
+        return RETURN_ERROR;
+    }
+
+    uint8_t *contents;
+    if (load_contents(file, superblock, &found_file, (uint8_t**)&contents)) {
+        fprintf(stderr, "Failed to load the file\n");
+        return RETURN_ERROR;
+    }
+
+    printf(contents);
+    free(contents);
+
+    return RETURN_SUCCESS;
+}
+
 const command_func_ptr commands[] = {
     &help,
     &echo,
@@ -303,7 +375,9 @@ const command_func_ptr commands[] = {
     &touch,
     &mkdir,
     &cd,
-    &stat
+    &stat,
+    &edit,
+    &cat
 };
 const char* command_names[] = {
     "help",
@@ -312,6 +386,8 @@ const char* command_names[] = {
     "touch",
     "mkdir",
     "cd",
-    "stat"
+    "stat",
+    "edit",
+    "cat"
 };
 const size_t n_commands = sizeof(command_names) / sizeof(const char*);
