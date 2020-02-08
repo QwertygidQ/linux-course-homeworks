@@ -37,16 +37,18 @@ int path_join(const char *p1, const char *p2, char **result) {
 }
 
 const char* filetype_str(const uint8_t filetype) {
-    char *filetype_str;
+    char *filetype_cstr;
     switch (filetype) {
     case FILETYPE_DIRECTORY:
-        filetype_str = "DIR";
+        filetype_cstr = "DIR";
         break;
     case FILETYPE_FILE:
-        filetype_str = "FILE";
+        filetype_cstr = "FILE";
         break;
     default:
-        filetype_str = "???";
+        filetype_cstr = "???";
         break;
     }
+
+    return filetype_cstr;
 }

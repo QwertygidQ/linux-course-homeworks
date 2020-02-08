@@ -312,13 +312,13 @@ int edit(
 
     printf("[openfs] Enter the new file contents:\n");
 
-    uint8_t edit_data[MAX_EDIT_LEN];
-    if(fgets(edit_data, MAX_EDIT_LEN, stdin) != (char*)edit_data) {
+    char edit_data[MAX_EDIT_LEN];
+    if(fgets(edit_data, MAX_EDIT_LEN, stdin) != edit_data) {
         fprintf(stderr, "[openfs] Failed to read the data\n");
         return RETURN_ERROR;
     }
 
-    if (write_contents(file, superblock, &found_file, edit_data, strlen(edit_data) * sizeof(uint8_t))) {
+    if (write_contents(file, superblock, &found_file, (const uint8_t*)edit_data, strlen(edit_data) * sizeof(char))) {
         fprintf(stderr, "[openfs] Failed to write the data\n");
         return RETURN_ERROR;
     }
@@ -362,7 +362,7 @@ int cat(
         return RETURN_ERROR;
     }
 
-    printf(contents);
+    printf("%s", contents);
     free(contents);
 
     return RETURN_SUCCESS;
