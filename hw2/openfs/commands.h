@@ -4,10 +4,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "../common/superblock.h"
+#include "../common/fs_file.h"
 #include "../common/inode.h"
+#include "../common/superblock.h"
 
-typedef int (*command_func_ptr)(struct Superblock*, struct Inode*, uint32_t*, FILE*, char*);
+typedef int (*command_func_ptr)(struct Superblock*, struct FsFile *fsfile, FILE*, char*);
 
 extern const command_func_ptr commands[];
 extern const char*            command_names[];

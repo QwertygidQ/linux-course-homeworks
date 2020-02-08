@@ -9,8 +9,7 @@
 
 int help(
      struct Superblock *superblock,
-     struct Inode* current_dir,
-     uint32_t *dir_inode_id,
+     struct FsFile *fsfile,
      FILE *file,
      char* args
 ) {
@@ -28,8 +27,7 @@ int help(
 
 int echo(
      struct Superblock *superblock,
-     struct Inode* current_dir,
-     uint32_t *dir_inode_id,
+     struct FsFile *fsfile,
      FILE *file,
      char* args
 ) {
@@ -43,29 +41,17 @@ int echo(
 
 int ls(
      struct Superblock *superblock,
-     struct Inode* current_dir,
-     uint32_t *dir_inode_id,
+     struct FsFile *fsfile,
      FILE *file,
      char* args
 ) {
-    uint32_t *block_ids;
-    size_t n_block_ids;
-    if (get_all_block_ids(file, superblock, current_dir, &block_ids, &n_block_ids)) {
-        fprintf(stderr, "[openfs] Failed to read the directory blocks\n");
+    struct DirectoryEntry *entries = malloc(fsfile->inode.file_size);
+    if (load_contents(file, superblock, fsfile, (uint8_t**)&entries)) {
+        fprintf(stderr, "Failed to load directory contents\n");
         return RETURN_ERROR;
     }
 
-    struct DirectoryEntry *entries = malloc(current_dir->file_size);
-    for (size_t i = 0; i < n_block_ids; ++i) {
-        if (read_blocks(file, superblock, block_ids + i, 1, (uint8_t *)(entries + i), DIRECTORY_ENTRY_SIZE)) {
-            fprintf(stderr, "[openfs] Failed to read the directory contents\n");
-            free(entries);
-            free(block_ids);
-            return RETURN_ERROR;
-        }
-    }
-
-    const size_t n_entries = current_dir->file_size / DIRECTORY_ENTRY_SIZE;
+    const size_t n_entries = fsfile->inode.file_size / DIRECTORY_ENTRY_SIZE;
     printf("Total %d\n", n_entries);
     for (size_t i = 0; i < n_entries; ++i) {
         char *filetype_str;
@@ -85,14 +71,12 @@ int ls(
     }
 
     free(entries);
-    free(block_ids);
     return RETURN_SUCCESS;
 }
 
 static int create_file(
      struct Superblock *superblock,
-     struct Inode* current_dir,
-     uint32_t *dir_inode_id,
+     struct FsFile *fsfile,
      FILE *file,
      char* args,
      const int filetype
@@ -130,12 +114,12 @@ static int create_file(
         return RETURN_ERROR;
     }
 
-    if (append_block_ids(file, superblock, current_dir, block_ids, entry_blocks)) {
+    if (append_block_ids(file, superblock, &fsfile->inode, block_ids, entry_blocks)) {
         free(block_ids);
         return RETURN_ERROR;
     }
 
-    current_dir->file_size += DIRECTORY_ENTRY_SIZE;
+    fsfile->inode.file_size += DIRECTORY_ENTRY_SIZE;
 
     if (set_inode_use(superblock, inode_id, 1)) {
         free(block_ids);
@@ -154,7 +138,7 @@ static int create_file(
         return RETURN_ERROR;
     }
 
-    if (write_inode(file, superblock, current_dir, *dir_inode_id)) {
+    if (write_inode(file, superblock, &fsfile->inode, fsfile->inode_id)) {
         free(block_ids);
         return RETURN_ERROR;
     }
@@ -170,22 +154,21 @@ static int create_file(
 
 int touch(
      struct Superblock *superblock,
-     struct Inode* current_dir,
-     uint32_t *dir_inode_id,
+     struct FsFile *fsfile,
      FILE *file,
      char* args
 ) {
-    return create_file(superblock, current_dir, dir_inode_id, file, args, FILETYPE_FILE);
+    return create_file(superblock, fsfile, file, args, FILETYPE_FILE);
 }
 
 int mkdir(
      struct Superblock *superblock,
-     struct Inode* current_dir,
-     uint32_t *dir_inode_id,
+     struct FsFile *fsfile,
      FILE *file,
      char* args
 ) {
-    return create_file(superblock, current_dir, dir_inode_id, file, args, FILETYPE_DIRECTORY);
+    // TODO: add creation of . and ..
+    return create_file(superblock, fsfile, file, args, FILETYPE_DIRECTORY);
 }
 
 const command_func_ptr commands[] = {

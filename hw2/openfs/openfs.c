@@ -3,8 +3,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "../common/superblock.h"
+#include "../common/fs_file.h"
 #include "../common/inode.h"
+#include "../common/superblock.h"
 
 #include "commands.h"
 
@@ -26,13 +27,17 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    struct Inode current_dir;
-    if (read_inode(file, &superblock, &current_dir, 1)) {
+    struct Inode inode;
+    if (read_inode(file, &superblock, &inode, 1)) {
         fprintf(stderr, "Failed to read the root directory inode\n");
         return EXIT_FAILURE;
     }
 
-    uint32_t inode_id = 1;
+    struct FsFile current_dir = {
+        .fullname = "/",
+        .inode_id = 1,
+        .inode    = inode
+    };
 
     int running = 1;
     while (running) {
@@ -67,7 +72,7 @@ int main(int argc, char* argv[]) {
         int command_recognized = 0;
         for (size_t i = 0; i < n_commands; ++i) {
             if (strcmp(command, command_names[i]) == 0) {
-                int return_code = commands[i](&superblock, &current_dir, &inode_id, file, args);
+                int return_code = commands[i](&superblock, &current_dir, file, args);
                 if (return_code == RETURN_ERROR) {
                     fprintf(stderr, "[openfs] Command returned the error code RETURN_ERROR\n");
                 } else if (return_code == RETURN_CRITICAL) {
