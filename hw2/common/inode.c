@@ -237,7 +237,7 @@ static int allocate_indirect_block(
      uint32_t *where
 ) {
     uint32_t indirect_block_id;
-    if (!get_unused_blocks(superblock, &indirect_block_id, 1))
+    if (get_unused_blocks(superblock, &indirect_block_id, 1))
         return 1;
 
     const size_t indirect_len = superblock->block_size / sizeof(uint32_t);
