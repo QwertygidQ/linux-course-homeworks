@@ -36,14 +36,6 @@ int get_block_ids(
     size_t *n_block_ids
 );
 
-int append_block_ids(
-    FILE *file,
-    const struct Superblock *superblock,
-    struct Inode *inode,
-    const uint32_t *block_ids,
-    const size_t n_block_ids
-);
-
 int set_block_ids(
      FILE *file,
      struct Superblock *superblock,

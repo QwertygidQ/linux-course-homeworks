@@ -74,6 +74,8 @@ int write_contents(
         return 1;
     }
 
+    fsfile->inode.file_size = ptr_size;
+
     free(block_ids);
     return 0;
 }

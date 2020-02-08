@@ -45,7 +45,7 @@ int ls(
      FILE *file,
      char* args
 ) {
-    struct DirectoryEntry *entries = malloc(fsfile->inode.file_size);
+    struct DirectoryEntry *entries;
     if (load_contents(file, superblock, fsfile, (uint8_t**)&entries)) {
         fprintf(stderr, "Failed to load directory contents\n");
         return RETURN_ERROR;
@@ -102,53 +102,46 @@ static int create_file(
     };
     strncpy(entry.name, args, MAX_FILENAME_LEN);
 
-    const size_t entry_blocks = DIV_CEIL(DIRECTORY_ENTRY_SIZE, superblock->block_size);
-    uint32_t *block_ids = calloc(entry_blocks, sizeof(uint32_t));
-    if (!block_ids) {
-        fprintf(stderr, "Failed to allocate the memory for the block_ids\n");
+    struct DirectoryEntry *entries;
+    if (load_contents(file, superblock, fsfile, (uint8_t**)&entries)) {
+        fprintf(stderr, "Failed to load directory contents\n");
         return RETURN_ERROR;
     }
 
-    if (get_unused_blocks(superblock, block_ids, entry_blocks)) {
-        free(block_ids);
-        return RETURN_ERROR;
+    const size_t new_size = fsfile->inode.file_size + DIRECTORY_ENTRY_SIZE;
+    struct DirectoryEntry *temp = realloc(entries, new_size);
+    if (!temp) {
+        fprintf(stderr, "Failed to reallocate memory for directory entries\n");
+        free(entries);
+        return 1;
     }
 
-    if (append_block_ids(file, superblock, &fsfile->inode, block_ids, entry_blocks)) {
-        free(block_ids);
-        return RETURN_ERROR;
+    entries = temp;
+    entries[fsfile->inode.file_size / DIRECTORY_ENTRY_SIZE] = entry;
+
+    if (write_contents(file, superblock, fsfile, (const uint8_t*)entries, new_size)) {
+        fprintf(stderr, "Failed to write the new file contents\n");
+        free(entries);
+        return 1;
     }
 
-    fsfile->inode.file_size += DIRECTORY_ENTRY_SIZE;
+    free(entries);
 
     if (set_inode_use(superblock, inode_id, 1)) {
-        free(block_ids);
-        return RETURN_ERROR;
-    }
-
-    for (size_t i = 0; i < entry_blocks; ++i) {
-        if (set_block_use(superblock, *(block_ids + i), 1)) {
-            free(block_ids);
-            return RETURN_ERROR;
-        }
-    }
-
-    if (write_blocks(file, superblock, block_ids, entry_blocks, (const uint8_t*)&entry, DIRECTORY_ENTRY_SIZE)) {
-        free(block_ids);
+        fprintf(stderr, "Failed to set inode use\n");
         return RETURN_ERROR;
     }
 
     if (write_inode(file, superblock, &fsfile->inode, fsfile->inode_id)) {
-        free(block_ids);
+        fprintf(stderr, "Failed to write the current directory inode");
         return RETURN_ERROR;
     }
 
     if (write_superblock(superblock, file)) {
-        free(block_ids);
+        fprintf(stderr, "Failed to write the superblock");
         return RETURN_ERROR;
     }
 
-    free(block_ids);
     return RETURN_SUCCESS;
 }
 

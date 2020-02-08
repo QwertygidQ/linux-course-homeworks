@@ -230,41 +230,11 @@ int get_block_ids(
     return finalize_get_all_block_ids(block_ids, n_block_ids, offset);
 }
 
-int append_block_ids(
-     FILE *file,
-     const struct Superblock *superblock,
-     struct Inode *inode,
-     const uint32_t *block_ids,
-     const size_t n_block_ids
-) {
-    size_t offset = 0;
-
-    int first_empty_direct = -1;
-    for (size_t i = 0; i < INDIRECT_BLOCK; ++i) {
-        if (inode->blocks[i] == 0) {
-            first_empty_direct = i;
-            break;
-        }
-    }
-
-    // TODO: check how much exactly we should copy
-
-    if (first_empty_direct != -1) {
-        const size_t write_len = INDIRECT_BLOCK - first_empty_direct;
-        memcpy(&(inode->blocks[first_empty_direct]), block_ids + offset, write_len);
-        offset += write_len;
-    }
-
-    // TODO: appending for indirect addressing
-
-    return 0;
-}
-
 static int allocate_indirect_block(
      FILE *file,
      struct Superblock *superblock,
      struct Inode *inode,
-     const size_t block_id
+     uint32_t *where
 ) {
     uint32_t indirect_block_id;
     if (!get_unused_blocks(superblock, &indirect_block_id, 1))
@@ -290,7 +260,7 @@ static int allocate_indirect_block(
         return 1;
     }
 
-    inode->blocks[block_id] = indirect_block_id;
+    *where = indirect_block_id;
     return 0;
 }
 
@@ -310,8 +280,14 @@ static int fill_indirect_block(
         return 1;
     }
 
-    for (size_t i = 0; i < indirect_len && *offset < n_data; ++i)
+    for (size_t i = 0; i < indirect_len && *offset < n_data; ++i) {
+        if (set_block_use(superblock, data[*offset], 1)) {
+            fprintf(stderr, "Failed to set block use\n");
+            return 1;
+        }
+
         indirect_data[i] = data[(*offset)++];
+    }
 
     if (write_blocks(file, superblock, &block_id, 1, (const uint8_t*)indirect_data, superblock->block_size)) {
         fprintf(stderr, "Failed to write the indirect block\n");
@@ -333,15 +309,21 @@ int set_block_ids(
     size_t offset = 0;
 
     // Direct addressing
-    for (size_t i = 0; i < INDIRECT_BLOCK && offset < n_block_ids; ++i)
+    for (size_t i = 0; i < INDIRECT_BLOCK && offset < n_block_ids; ++i) {
+        if (set_block_use(superblock, block_ids[offset], 1)) {
+            fprintf(stderr, "Failed to set block use\n");
+            return 1;
+        }
+
         inode->blocks[i] = block_ids[offset++];
+    }
 
     if (offset == n_block_ids)
         return 0;
 
     // Indirect addressing
     if (inode->blocks[INDIRECT_BLOCK] == 0) {
-        if (allocate_indirect_block(file, superblock, inode, INDIRECT_BLOCK))
+        if (allocate_indirect_block(file, superblock, inode, &inode->blocks[INDIRECT_BLOCK]))
             return 1;
     } else {
         int block_use = get_block_use(superblock, inode->blocks[INDIRECT_BLOCK]);
@@ -351,7 +333,7 @@ int set_block_ids(
         }
 
         if (!block_use) {
-            if (allocate_indirect_block(file, superblock, inode, INDIRECT_BLOCK))
+            if (allocate_indirect_block(file, superblock, inode, &inode->blocks[INDIRECT_BLOCK]))
                 return 1;
         }
     }
@@ -375,7 +357,7 @@ int set_block_ids(
 
     // Double indirect addressing
     if (inode->blocks[DOUBLE_INDIRECT_BLOCK] == 0) {
-        if (allocate_indirect_block(file, superblock, inode, INDIRECT_BLOCK))
+        if (allocate_indirect_block(file, superblock, inode, &inode->blocks[DOUBLE_INDIRECT_BLOCK]))
             return 1;
     } else {
         int block_use = get_block_use(superblock, inode->blocks[DOUBLE_INDIRECT_BLOCK]);
@@ -385,7 +367,7 @@ int set_block_ids(
         }
 
         if (!block_use) {
-            if (allocate_indirect_block(file, superblock, inode, INDIRECT_BLOCK))
+            if (allocate_indirect_block(file, superblock, inode, &inode->blocks[DOUBLE_INDIRECT_BLOCK]))
                 return 1;
         }
     }
@@ -413,14 +395,14 @@ int set_block_ids(
     }
 
     for (size_t i = 0; i < indirect_len && offset < n_block_ids; ++i) {
-        const uint32_t current_block = double_indirect_map[i];
-        if (current_block == 0) {
+        uint32_t *current_block = double_indirect_map + i;
+        if (*current_block == 0) {
             if (allocate_indirect_block(file, superblock, inode, current_block)) {
                 free(double_indirect_map);
                 return 1;
             }
         } else {
-            int block_use = get_block_use(superblock, current_block);
+            int block_use = get_block_use(superblock, *current_block);
             if (block_use == -1) {
                 fprintf(stderr, "Failed to get block use\n");
                 free(double_indirect_map);
@@ -440,7 +422,7 @@ int set_block_ids(
                 file,
                 superblock,
                 inode,
-                current_block,
+                *current_block,
                 block_ids,
                 n_block_ids,
                 &offset
