@@ -36,4 +36,11 @@ int clear_file(
     struct FsFile *fsfile
 );
 
+int remove_file(
+     FILE *file,
+     struct Superblock *superblock,
+     struct FsFile *directory,
+     const char *filename
+);
+
 #endif

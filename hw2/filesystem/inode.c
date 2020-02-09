@@ -62,9 +62,19 @@ int read_inode (
 
 int clear_inode(
      FILE *file,
-     const struct Superblock *superblock,
+     struct Superblock *superblock,
      const uint32_t inode_id
 ) {
+    if (inode_id == 0 || inode_id > superblock->total_inodes) {
+        fprintf(stderr, "Invalid inode id\n");
+        return 1;
+    }
+
+    if (set_inode_use(superblock, inode_id, 0)) {
+        fprintf(stderr, "Failed to unset inode use\n");
+        return 1;
+    }
+
     if (seek_to_inode(file, superblock, inode_id))
         return 1;
 

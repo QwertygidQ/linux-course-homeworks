@@ -1,6 +1,7 @@
 #include "fs_file.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "constants.h"
 #include "block_ops.h"
@@ -107,6 +108,114 @@ int clear_file(
     if (clear_inode(file, superblock, fsfile->inode_id)) {
         fprintf(stderr, "Failed to clear inode\n");
         return 1;
+    }
+
+    return 0;
+}
+
+int remove_file(
+     FILE *file,
+     struct Superblock *superblock,
+     struct FsFile *directory,
+     const char *filename
+) {
+    if (strcmp(filename, ".") == 0 || strcmp(filename, "..") == 0) {
+        fprintf(stderr, "Cannot remove . or ..\n");
+        return 1;
+    }
+
+    struct DirectoryEntry *entries, entry;
+    if (load_contents(file, superblock, directory, (uint8_t**)&entries)) {
+        fprintf(stderr, "Failed to load directory contents\n");
+        return 1;
+    }
+
+    const size_t n_entries = directory->inode.file_size / DIRECTORY_ENTRY_SIZE;
+    int index = -1;
+    for (size_t i = 0; i < n_entries; ++i) {
+        if (strcmp(entries[i].name, filename) == 0) {
+            entry = entries[i];
+            index = i;
+            break;
+        }
+    }
+
+    if (index == -1) {
+        fprintf(stderr, "File not found in current directory\n");
+        free(entries);
+        return 1;
+    }
+
+    entries[index] = entries[n_entries - 1];
+
+    if (
+         write_contents(
+             file,
+             superblock,
+             directory,
+             (const uint8_t*)entries,
+             (n_entries - 1) * DIRECTORY_ENTRY_SIZE
+         )
+    ) {
+        fprintf(stderr, "Failed to remove directory entry\n");
+        free(entries);
+        return 1;
+    }
+
+    free(entries);
+
+    if (write_inode(file, superblock, &directory->inode, directory->inode_id)) {
+        fprintf(stderr, "Failed to write directory inode\n");
+        return 1;
+    }
+
+    struct FsFile found_file = {
+        .inode_id = entry.inode_id,
+        .filetype = entry.filetype
+    };
+    if (read_inode(file, superblock, &found_file.inode, found_file.inode_id)) {
+        fprintf(stderr, "Failed to read inode\n");
+        return 1;
+    }
+    --found_file.inode.links_count;
+
+    if (found_file.filetype == FILETYPE_DIRECTORY) {
+        if (load_contents(file, superblock, &found_file, (uint8_t**)&entries)) {
+            fprintf(stderr, "Failed to load directory contents\n");
+            return 1;
+        }
+
+        const size_t dir_len = found_file.inode.file_size / DIRECTORY_ENTRY_SIZE;
+        for (size_t i = 0; i < dir_len; ++i) {
+            if (strcmp(entries[i].name, ".") != 0 && strcmp(entries[i].name, "..") != 0) {
+                if (entries[i].filetype == FILETYPE_DIRECTORY)
+                    --found_file.inode.links_count; // ..
+
+                printf("Removing nested file %s\n", entries[i].name);
+                if (remove_file(file, superblock, &found_file, entries[i].name)) {
+                    fprintf(stderr, "Failed to remove nested directory\n");
+                    free(entries);
+                    return 1;
+                }
+            }
+        }
+
+        --found_file.inode.links_count; // .
+        free(entries);
+    }
+
+    if (found_file.inode.links_count == 0) {
+        printf("No more links to the file, clearing\n");
+        if (clear_file(file, superblock, &found_file)) {
+            fprintf(stderr, "Failed to clear file\n");
+            return 1;
+        }
+    } else {
+        printf("%d links left\n", found_file.inode.links_count);
+        if (write_inode(file, superblock, &found_file.inode, found_file.inode_id)) {
+            fprintf(stderr, "Failed to write inode\n");
+            return 1;
+        }
     }
 
     return 0;

@@ -25,7 +25,7 @@ int help(
         "stat FILE      -- get information about FILE\n"
         "edit FILENAME  -- edit the file FILENAME\n"
         "cat FILENAME   -- print the file FILENAME to stdout\n"
-        "rm FILENAME    -- removes the file FILENAME\n"
+        "rm FILENAME    -- removes the file FILENAME *in the current directory*\n"
         "quit           -- quits this pseudo-shell\n"
     );
 
@@ -378,18 +378,19 @@ int rm(
     if (args == NULL) {
         fprintf(stderr, "[openfs] Args cannot be NULL for this command\n");
         return RETURN_ERROR;
+    } else if (strcmp(args, ".") == 0 || strcmp(args, "..") == 0) {
+        fprintf(stderr, "[openfs] Cannot remove . or .., cd to the parent directory to remove\n");
+        return RETURN_ERROR;
     }
 
-    struct FsFile found_file;
-    if (find_file(file, superblock, fsfile, args, &found_file))
+    if (remove_file(file, superblock, fsfile, args)) {
+        fprintf(stderr, "[openfs] Failed to remove file\n");
         return RETURN_ERROR;
-
-    if (clear_file(file, superblock, &found_file))
-        return RETURN_ERROR;
+    }
 
     if (write_superblock(superblock, file)) {
-        fprintf(stderr, "Failed to write the superblock\n");
-        return RETURN_ERROR;
+        fprintf(stderr, "[openfs] Failed to write the superblock\n");
+        return 1;
     }
 
     return RETURN_SUCCESS;

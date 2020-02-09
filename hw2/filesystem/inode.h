@@ -30,7 +30,7 @@ int read_inode (
 
 int clear_inode(
      FILE *file,
-     const struct Superblock *superblock,
+     struct Superblock *superblock,
      const uint32_t inode_id
 );
 
