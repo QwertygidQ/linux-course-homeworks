@@ -20,9 +20,14 @@ int path_join(const char *p1, const char *p2, char **result) {
         if (strcmp(p1, "/") == 0)
             return 0;
 
-        for (int i = strlen(p1) - 1; i > 0; --i) {
-            if ((*result)[i - 1] == '/') {
+        for (int i = strlen(p1) - 1; i >= 0; --i) {
+            if ((*result)[i] == '/') {
                 (*result)[i] = '\0';
+                if (strlen(*result) == 0) {
+                    (*result)[0] = '/';
+                    (*result)[1] = '\0';
+                }
+
                 return 0;
             }
         }
