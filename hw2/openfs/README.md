@@ -10,9 +10,5 @@ make
 ## Running
 ```
 ./openfs FILE
-```
-
-## Usage
-```
 / > help
 ```
