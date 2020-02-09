@@ -79,3 +79,35 @@ int write_contents(
     free(block_ids);
     return 0;
 }
+
+int clear_file(
+     FILE *file,
+     struct Superblock *superblock,
+     struct FsFile *fsfile
+) {
+    uint8_t *zeroed = calloc(fsfile->inode.file_size / sizeof(uint8_t), sizeof(uint8_t));
+    if (!zeroed) {
+        fprintf(stderr, "Failed to initialize zeroed memory\n");
+        return 1;
+    }
+
+    if (write_contents(file, superblock, fsfile, zeroed, fsfile->inode.file_size)) {
+        fprintf(stderr, "Failed to zero out memory\n");
+        free(zeroed);
+        return 1;
+    }
+
+    free(zeroed);
+
+    if (clear_block_ids(file, superblock, &fsfile->inode)) {
+        fprintf(stderr, "Failed to clear block ids\n");
+        return 1;
+    }
+
+    if (clear_inode(file, superblock, fsfile->inode_id)) {
+        fprintf(stderr, "Failed to clear inode\n");
+        return 1;
+    }
+
+    return 0;
+}

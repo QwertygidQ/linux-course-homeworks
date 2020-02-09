@@ -28,6 +28,12 @@ int read_inode (
     const uint32_t inode_id
 );
 
+int clear_inode(
+     FILE *file,
+     const struct Superblock *superblock,
+     const uint32_t inode_id
+);
+
 int get_block_ids(
     FILE *file,
     const struct Superblock *superblock,

@@ -21,12 +21,19 @@ int load_contents(
     const struct FsFile *fsfile,
     uint8_t **ptr
 );
+
 int write_contents(
     FILE *file,
     struct Superblock *superblock,
     struct FsFile *fsfile,
     const uint8_t *ptr,
     const size_t ptr_size
+);
+
+int clear_file(
+    FILE *file,
+    struct Superblock *superblock,
+    struct FsFile *fsfile
 );
 
 #endif

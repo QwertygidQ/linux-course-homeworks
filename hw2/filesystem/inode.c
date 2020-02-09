@@ -60,6 +60,28 @@ int read_inode (
     return 0;
 }
 
+int clear_inode(
+     FILE *file,
+     const struct Superblock *superblock,
+     const uint32_t inode_id
+) {
+    if (seek_to_inode(file, superblock, inode_id))
+        return 1;
+
+    uint8_t *zeroed = calloc(INODE_SIZE / sizeof(uint8_t), sizeof(uint8_t));
+    if (!zeroed) {
+        fprintf(stderr, "Failed to initialize zeroed memory\n");
+        return 1;
+    }
+
+    if (fwrite(zeroed, INODE_SIZE, 1, file) != 1) {
+        fprintf(stderr, "Failed to zero out the inode\n");
+        return 1;
+    }
+
+    return 0;
+}
+
 static int get_indirect_block_ids(
      FILE *file,
      const struct Superblock *superblock,

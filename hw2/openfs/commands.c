@@ -25,6 +25,7 @@ int help(
         "stat FILE      -- get information about FILE\n"
         "edit FILENAME  -- edit the file FILENAME\n"
         "cat FILENAME   -- print the file FILENAME to stdout\n"
+        "rm FILENAME    -- removes the file FILENAME\n"
         "quit           -- quits this pseudo-shell\n"
     );
 
@@ -358,12 +359,38 @@ int cat(
 
     uint8_t *contents;
     if (load_contents(file, superblock, &found_file, (uint8_t**)&contents)) {
-        fprintf(stderr, "Failed to load the file\n");
+        fprintf(stderr, "[openfs] Failed to load the file\n");
         return RETURN_ERROR;
     }
 
     printf("%s", contents);
     free(contents);
+
+    return RETURN_SUCCESS;
+}
+
+int rm(
+     struct Superblock *superblock,
+     struct FsFile *fsfile,
+     FILE *file,
+     char* args
+) {
+    if (args == NULL) {
+        fprintf(stderr, "[openfs] Args cannot be NULL for this command\n");
+        return RETURN_ERROR;
+    }
+
+    struct FsFile found_file;
+    if (find_file(file, superblock, fsfile, args, &found_file))
+        return RETURN_ERROR;
+
+    if (clear_file(file, superblock, &found_file))
+        return RETURN_ERROR;
+
+    if (write_superblock(superblock, file)) {
+        fprintf(stderr, "Failed to write the superblock\n");
+        return RETURN_ERROR;
+    }
 
     return RETURN_SUCCESS;
 }
@@ -377,7 +404,8 @@ const command_func_ptr commands[] = {
     &cd,
     &stat,
     &edit,
-    &cat
+    &cat,
+    &rm
 };
 const char* command_names[] = {
     "help",
@@ -388,6 +416,7 @@ const char* command_names[] = {
     "cd",
     "stat",
     "edit",
-    "cat"
+    "cat",
+    "rm"
 };
 const size_t n_commands = sizeof(command_names) / sizeof(const char*);
