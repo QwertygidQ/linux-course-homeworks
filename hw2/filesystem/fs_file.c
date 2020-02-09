@@ -164,6 +164,9 @@ int remove_file(
 
     free(entries);
 
+    if (entry.filetype == FILETYPE_DIRECTORY)
+        --directory->inode.links_count; // ..
+
     if (write_inode(file, superblock, &directory->inode, directory->inode_id)) {
         fprintf(stderr, "Failed to write directory inode\n");
         return 1;
@@ -177,7 +180,7 @@ int remove_file(
         fprintf(stderr, "Failed to read inode\n");
         return 1;
     }
-    --found_file.inode.links_count;
+    --found_file.inode.links_count; // removed from parent directory
 
     if (found_file.filetype == FILETYPE_DIRECTORY) {
         if (load_contents(file, superblock, &found_file, (uint8_t**)&entries)) {
@@ -188,9 +191,6 @@ int remove_file(
         const size_t dir_len = found_file.inode.file_size / DIRECTORY_ENTRY_SIZE;
         for (size_t i = 0; i < dir_len; ++i) {
             if (strcmp(entries[i].name, ".") != 0 && strcmp(entries[i].name, "..") != 0) {
-                if (entries[i].filetype == FILETYPE_DIRECTORY)
-                    --found_file.inode.links_count; // ..
-
                 printf("Removing nested file %s\n", entries[i].name);
                 if (remove_file(file, superblock, &found_file, entries[i].name)) {
                     fprintf(stderr, "Failed to remove nested directory\n");

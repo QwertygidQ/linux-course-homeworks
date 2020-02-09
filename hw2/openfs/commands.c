@@ -379,7 +379,7 @@ int rm(
         fprintf(stderr, "[openfs] Args cannot be NULL for this command\n");
         return RETURN_ERROR;
     } else if (strcmp(args, ".") == 0 || strcmp(args, "..") == 0) {
-        fprintf(stderr, "[openfs] Cannot remove . or .., cd to the parent directory to remove\n");
+        fprintf(stderr, "[openfs] Cannot remove . or ..\n");
         return RETURN_ERROR;
     }
 
