@@ -16,17 +16,17 @@ int help(
      char* args
 ) {
     printf(
-        "help           -- shows this message\n"
-        "echo MESSAGE   -- prints out MESSAGE\n"
-        "ls             -- lists all files in the current directory\n"
-        "touch FILENAME -- creates a file called FILENAME\n"
-        "mkdir DIRNAME  -- creates a directory called DIRNAME\n"
-        "cd DIRNAME     -- changes your current directory to DIRNAME\n"
-        "stat FILE      -- get information about FILE\n"
+        "help           -- show this message\n"
+        "echo MESSAGE   -- print out MESSAGE\n"
+        "ls             -- list all files in the current directory\n"
+        "touch FILENAME -- create a file called FILENAME\n"
+        "mkdir DIRNAME  -- create a directory called DIRNAME\n"
+        "cd DIRNAME     -- change your current directory to DIRNAME\n"
+        "stat FILENAME  -- get information about file/directory FILENAME\n"
         "edit FILENAME  -- edit the file FILENAME\n"
         "cat FILENAME   -- print the file FILENAME to stdout\n"
-        "rm FILENAME    -- removes the file FILENAME *in the current directory*\n"
-        "quit           -- quits this pseudo-shell\n"
+        "rm FILENAME    -- remove the file/directory FILENAME *in the current directory*\n"
+        "quit           -- quit this pseudo-shell\n"
     );
 
     return RETURN_SUCCESS;
