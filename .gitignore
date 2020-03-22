@@ -6,6 +6,7 @@ hw2/openfs/openfs
 .vscode
 *.gch
 fs_cpy
+hw3/vm/*
 
 !.gitignore
 !Makefile
