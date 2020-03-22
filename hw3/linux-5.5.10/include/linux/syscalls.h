@@ -55,6 +55,7 @@ struct __kernel_old_timeval;
 struct __kernel_timex;
 struct timezone;
 struct tms;
+struct user_data;
 struct utimbuf;
 struct mq_attr;
 struct compat_stat;
