@@ -51,5 +51,5 @@ git clone https://github.com/QwertygidQ/linux-course-homeworks
 curl https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.5.10.tar.xz --output linux_src.tar.xz
 tar xvf linux_src.tar.xz
 cd linux-5.5.10
-zcat /proc/config.gz > .config
 ```
+(Move all the files from this homework's cloned repository to their corresponding folders in linux-5.5.10)
