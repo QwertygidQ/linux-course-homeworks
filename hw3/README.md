@@ -46,7 +46,7 @@ dhcpcd
 
 ## Setting up the kernel
 ```
-pacman -S git bc
+pacman -S git bc base-devel
 git clone https://github.com/QwertygidQ/linux-course-homeworks
 curl https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.5.10.tar.xz --output linux_src.tar.xz
 tar xvf linux_src.tar.xz
