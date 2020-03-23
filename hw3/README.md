@@ -29,7 +29,7 @@ mount /dev/sda1 /mnt
 pacstrap /mnt base linux linux-firmware
 genfstab -U /mnt >> /mnt/etc/fstab
 arch-chroot /mnt
-pacman -S grub nano dhcpcd
+pacman -S grub dhcpcd
 grub-install /dev/sda
 grub-mkconfig -o /boot/grub/grub.cfg
 exit
@@ -40,16 +40,9 @@ poweroff
 
 ## Running the VM
 ```
-qemu-system-x86_64 image.raw -m 512M
+qemu-system-x86_64 image.raw -m 512M --enable-kvm
 dhcpcd
 ```
 
 ## Setting up the kernel
-```
-pacman -S git bc base-devel
-git clone https://github.com/QwertygidQ/linux-course-homeworks
-curl https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.5.10.tar.xz --output linux_src.tar.xz
-tar xvf linux_src.tar.xz
-cd linux-5.5.10
-```
-(Move all the files from this homework's cloned repository to their corresponding folders in linux-5.5.10)
+(Compile the kernel on your host machine and upload it to the VM (for example, using sshfs))
