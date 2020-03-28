@@ -80,6 +80,7 @@ reboot
 
 int main()
 {
+    // hello_world syscall
     long result = syscall(436, "", 0, NULL);
     printf("syscall returned %d\n", result);
 

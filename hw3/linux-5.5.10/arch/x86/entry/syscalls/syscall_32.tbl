@@ -440,4 +440,5 @@
 433	i386	fspick			sys_fspick			__ia32_sys_fspick
 434	i386	pidfd_open		sys_pidfd_open			__ia32_sys_pidfd_open
 435	i386	clone3			sys_clone3			__ia32_sys_clone3
-436 i386    get_user        sys_get_user
+436 i386    hello_world		sys_hello_world		__ia32_sys_hello_world
+437 i386    get_user		sys_get_user		__ia32_sys_get_user

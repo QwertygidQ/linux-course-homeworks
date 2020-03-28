@@ -731,6 +731,7 @@ asmlinkage long sys_umask(int mask);
 asmlinkage long sys_prctl(int option, unsigned long arg2, unsigned long arg3,
 			unsigned long arg4, unsigned long arg5);
 asmlinkage long sys_getcpu(unsigned __user *cpu, unsigned __user *node, struct getcpu_cache __user *cache);
+asmlinkage long sys_hello_world(void);
 asmlinkage long sys_get_user(const char *surname, unsigned int len, struct user_data *output_data);
 
 /* kernel/time.c */

@@ -506,7 +506,9 @@ __SYSCALL(__NR_umask, sys_umask)
 __SYSCALL(__NR_prctl, sys_prctl)
 #define __NR_getcpu 168
 __SYSCALL(__NR_getcpu, sys_getcpu)
-#define __NR_get_user 436
+#define __NR_hello_world 436
+__SYSCALL(__NR_hello_world, sys_hello_world)
+#define __NR_get_user 437
 __SYSCALL(__NR_get_user, sys_get_user)
 
 /* kernel/time.c */
@@ -854,7 +856,7 @@ __SYSCALL(__NR_clone3, sys_clone3)
 #endif
 
 #undef __NR_syscalls
-#define __NR_syscalls 437
+#define __NR_syscalls 438
 
 /*
  * 32 bit systems traditionally used different
