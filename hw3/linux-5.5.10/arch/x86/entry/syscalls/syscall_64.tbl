@@ -359,6 +359,8 @@
 435	common	clone3			__x64_sys_clone3/ptregs
 436	common	hello_world		__x64_sys_hello_world
 437	common	get_user		__x64_sys_get_user
+438	common	add_user		__x64_sys_add_user
+439	common	del_user		__x64_sys_del_user
 
 #
 # x32-specific system call numbers start at 512 to avoid cache impact

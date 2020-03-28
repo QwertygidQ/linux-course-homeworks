@@ -442,3 +442,5 @@
 435	i386	clone3			sys_clone3			__ia32_sys_clone3
 436 i386    hello_world		sys_hello_world		__ia32_sys_hello_world
 437 i386    get_user		sys_get_user		__ia32_sys_get_user
+438 i386    add_user		sys_add_user		__ia32_sys_add_user
+439 i386    del_user		sys_del_user		__ia32_sys_del_user

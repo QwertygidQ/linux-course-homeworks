@@ -506,10 +506,6 @@ __SYSCALL(__NR_umask, sys_umask)
 __SYSCALL(__NR_prctl, sys_prctl)
 #define __NR_getcpu 168
 __SYSCALL(__NR_getcpu, sys_getcpu)
-#define __NR_hello_world 436
-__SYSCALL(__NR_hello_world, sys_hello_world)
-#define __NR_get_user 437
-__SYSCALL(__NR_get_user, sys_get_user)
 
 /* kernel/time.c */
 #if defined(__ARCH_WANT_TIME32_SYSCALLS) || __BITS_PER_LONG != 32
@@ -855,8 +851,17 @@ __SYSCALL(__NR_pidfd_open, sys_pidfd_open)
 __SYSCALL(__NR_clone3, sys_clone3)
 #endif
 
+#define __NR_hello_world 436
+__SYSCALL(__NR_hello_world, sys_hello_world)
+#define __NR_get_user 437
+__SYSCALL(__NR_get_user, sys_get_user)
+#define __NR_add_user 438
+__SYSCALL(__NR_add_user, sys_add_user)
+#define __NR_del_user 439
+__SYSCALL(__NR_del_user, sys_del_user)
+
 #undef __NR_syscalls
-#define __NR_syscalls 438
+#define __NR_syscalls 440
 
 /*
  * 32 bit systems traditionally used different

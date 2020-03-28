@@ -731,8 +731,6 @@ asmlinkage long sys_umask(int mask);
 asmlinkage long sys_prctl(int option, unsigned long arg2, unsigned long arg3,
 			unsigned long arg4, unsigned long arg5);
 asmlinkage long sys_getcpu(unsigned __user *cpu, unsigned __user *node, struct getcpu_cache __user *cache);
-asmlinkage long sys_hello_world(void);
-asmlinkage long sys_get_user(const char *surname, unsigned int len, struct user_data *output_data);
 
 /* kernel/time.c */
 asmlinkage long sys_gettimeofday(struct __kernel_old_timeval __user *tv,
@@ -1003,6 +1001,12 @@ asmlinkage long sys_fspick(int dfd, const char __user *path, unsigned int flags)
 asmlinkage long sys_pidfd_send_signal(int pidfd, int sig,
 				       siginfo_t __user *info,
 				       unsigned int flags);
+
+/* phonebook/phonebook.c */
+asmlinkage long sys_hello_world(void);
+asmlinkage long sys_get_user(const char *surname, unsigned int len, struct user_data *output_data);
+asmlinkage long sys_add_user(struct user_data *input_data);
+asmlinkage long sys_del_user(const char *surname, unsigned int len);
 
 /*
  * Architecture-specific system calls
