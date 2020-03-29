@@ -3,43 +3,17 @@
 #include <linux/user_data.h>
 
 #include <asm/errno.h>
-#include <asm/segment.h>
 #include <asm/uaccess.h>
 #include <linux/err.h>
 #include <linux/fcntl.h>
 #include <linux/fs.h>
-#include <linux/buffer_head.h>
 
-#include <linux/fs.h>
-#include <linux/limits.h>
 #include <linux/string.h>
 #include <linux/types.h>
 
-#define BUFFER_SIZE 256  // Phonebook module buffer size
+#define DEVICE_FILE  "/dev/phonebook_device"
+#define BUFFER_SIZE  256  // Phonebook module buffer size
 #define USER_STRINGS 5
-
-/*
-struct file* open_file(const char *path, int flags, int rights)
-{
-    struct file *filp = NULL;
-    mm_segment_t fs;
-
-    fs = get_fs();
-    set_fs(KERNEL_DS);
-    filp = filp_open(path, flags, rights);
-    set_fs(fs);
-
-    if (IS_ERR(filp))
-        return NULL;
-
-    return filp;
-}
-
-void close_file(struct file *filp)
-{
-    filp_close(file, NULL);
-}
-*/
 
 static struct file* open_file(const char *path, int flags)
 {
@@ -138,7 +112,7 @@ SYSCALL_DEFINE1(
 
     printk(KERN_INFO "Add message: %s", add_message);
 
-    filp = open_file("/dev/phonebook_device", O_WRONLY);
+    filp = open_file(DEVICE_FILE, O_WRONLY);
     if (!filp)
         return -ENOENT;
 
