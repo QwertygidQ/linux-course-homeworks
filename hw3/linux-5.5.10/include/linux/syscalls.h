@@ -1004,9 +1004,13 @@ asmlinkage long sys_pidfd_send_signal(int pidfd, int sig,
 
 /* phonebook/phonebook.c */
 asmlinkage long sys_hello_world(void);
-asmlinkage long sys_get_user(const char *surname, unsigned int len, struct user_data *output_data);
-asmlinkage long sys_add_user(struct user_data *input_data);
-asmlinkage long sys_del_user(const char *surname, unsigned int len);
+asmlinkage long sys_get_user(
+	const char __user *surname,
+	unsigned int len,
+	struct user_data __user *output_data
+);
+asmlinkage long sys_add_user(struct user_data __user *input_data);
+asmlinkage long sys_del_user(const char __user *surname, unsigned int len);
 
 /*
  * Architecture-specific system calls

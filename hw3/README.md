@@ -93,3 +93,41 @@ gcc test.c
 ./a.out
 dmesg | tail | grep "Hello, world!"
 ```
+
+## Example
+(Download, make and insert the Phonebook module from hw1/)
+
+(Save in example.c)
+```
+#include <stdio.h>
+#include <linux/kernel.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+
+struct user_data {
+	const char *name, *surname, *phone, *email, *to_split;
+	long       age;
+	int        successfully_created;
+};
+
+int main()
+{
+	struct user_data data;
+	data.surname = "Surname";
+	data.name = "Name";
+	data.phone = "+1(111)1111";
+	data.email = "email@example.com";
+	data.age = 20;
+
+	long result = syscall(438, &data);
+	printf("syscall returned %d\n", result);
+
+	return 0;
+}
+```
+
+```
+gcc example.c
+./a.out
+dmesg | tail
+```
