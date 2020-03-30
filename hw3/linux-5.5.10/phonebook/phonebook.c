@@ -12,11 +12,11 @@
 #include <linux/string.h>
 #include <linux/types.h>
 
-#define DEVICE_FILE  "/dev/phonebook_device"
-#define BUFFER_SIZE  256  // Phonebook module buffer size
+#define DEVICE_FILE "/dev/phonebook_device"
+#define BUFFER_SIZE 256 // Phonebook module buffer size
 #define USER_STRINGS 5
 
-static struct file* open_file(const char *path, int flags)
+static struct file *open_file(const char *path, int flags)
 {
     struct file *filp = filp_open(path, flags, 0);
     if (IS_ERR(filp))
@@ -32,13 +32,12 @@ static void close_file(struct file *filp)
 
 static int allocate_user_data(
     struct user_data *to,
-    struct user_data *from
-)
+    struct user_data *from)
 {
-    to->surname  = NULL;
-    to->name     = NULL;
-    to->phone    = NULL;
-    to->email    = NULL;
+    to->surname = NULL;
+    to->name = NULL;
+    to->phone = NULL;
+    to->email = NULL;
 
     to->surname = (char *)kmalloc(sizeof(char) * (from->surname_len + 1), GFP_KERNEL);
     if (!to->surname)
@@ -93,8 +92,7 @@ static void deallocate_user_data(struct user_data *user)
 
 static int copy_user_data_from_user(
     struct user_data *to,
-    struct user_data __user *from
-)
+    struct user_data __user *from)
 {
     int err;
     struct user_data kern_from;
@@ -111,25 +109,24 @@ static int copy_user_data_from_user(
 
     if (
         copy_from_user(to->surname, kern_from.surname, sizeof(char) * kern_from.surname_len) ||
-        copy_from_user(to->name,    kern_from.name,    sizeof(char) * kern_from.name_len)    ||
-        copy_from_user(to->phone,   kern_from.phone,   sizeof(char) * kern_from.phone_len)   ||
-        copy_from_user(to->email,   kern_from.email,   sizeof(char) * kern_from.email_len)
-    )
+        copy_from_user(to->name, kern_from.name, sizeof(char) * kern_from.name_len) ||
+        copy_from_user(to->phone, kern_from.phone, sizeof(char) * kern_from.phone_len) ||
+        copy_from_user(to->email, kern_from.email, sizeof(char) * kern_from.email_len))
     {
         deallocate_user_data(to);
         return -EFAULT;
     }
 
     to->surname_len = kern_from.surname_len;
-    to->name_len    = kern_from.name_len;
-    to->phone_len   = kern_from.phone_len;
-    to->email_len   = kern_from.email_len;
-    to->age         = kern_from.age;
+    to->name_len = kern_from.name_len;
+    to->phone_len = kern_from.phone_len;
+    to->email_len = kern_from.email_len;
+    to->age = kern_from.age;
 
     to->surname[kern_from.surname_len] = '\0';
-    to->name[kern_from.name_len]       = '\0';
-    to->phone[kern_from.phone_len]     = '\0';
-    to->email[kern_from.email_len]     = '\0';
+    to->name[kern_from.name_len] = '\0';
+    to->phone[kern_from.phone_len] = '\0';
+    to->email[kern_from.email_len] = '\0';
 
     return 0;
 }
@@ -170,8 +167,7 @@ static int fill_add_message(struct user_data *user, char output_string[], size_t
         user->surname,
         user->phone,
         user->email,
-        age_string
-    );
+        age_string);
 
     return 0;
 }
@@ -179,8 +175,7 @@ static int fill_add_message(struct user_data *user, char output_string[], size_t
 static int send_surname_message(
     const char command,
     const char __user *surname,
-    unsigned int len
-)
+    unsigned int len)
 {
     char ker_space_surname[BUFFER_SIZE], message[BUFFER_SIZE];
     struct file *filp;
@@ -198,7 +193,7 @@ static int send_surname_message(
     snprintf(message, BUFFER_SIZE, "%c %s\n", command, ker_space_surname);
     printk(KERN_INFO "Message: %s", message);
 
-    filp = open_file(DEVICE_FILE, O_WRONLY | O_SYNC);
+    filp = open_file(DEVICE_FILE, O_WRONLY);
     if (!filp)
         return -ENOENT;
 
@@ -218,16 +213,15 @@ static int parse_find_output(const char message[], const size_t len, struct user
 
 SYSCALL_DEFINE0(hello_world)
 {
-	printk(KERN_INFO "Hello, world!");
-	return 0;
+    printk(KERN_INFO "Hello, world!");
+    return 0;
 }
 
 SYSCALL_DEFINE3(
     get_user,
     const char __user *, surname,
     unsigned int, len,
-	struct __user user_data *, output_data
-)
+    struct __user user_data *, output_data)
 {
     char user_message[BUFFER_SIZE];
     int err, message_len;
@@ -237,7 +231,7 @@ SYSCALL_DEFINE3(
     if (err)
         return err;
 
-    filp = open_file(DEVICE_FILE, O_RDONLY | O_SYNC);
+    filp = open_file(DEVICE_FILE, O_RDONLY);
     if (!filp)
         return -ENOENT;
 
@@ -257,8 +251,7 @@ SYSCALL_DEFINE3(
 
 SYSCALL_DEFINE1(
     add_user,
-    struct __user user_data *, input_data
-)
+    struct __user user_data *, input_data)
 {
     struct user_data user;
 
@@ -279,7 +272,7 @@ SYSCALL_DEFINE1(
 
     printk(KERN_INFO "Add message: %s", add_message);
 
-    filp = open_file(DEVICE_FILE, O_WRONLY | O_SYNC);
+    filp = open_file(DEVICE_FILE, O_WRONLY);
     if (!filp)
         return -ENOENT;
 
@@ -295,8 +288,7 @@ SYSCALL_DEFINE1(
 SYSCALL_DEFINE2(
     del_user,
     const char __user *, surname,
-    unsigned int, len
-)
+    unsigned int, len)
 {
     printk(KERN_INFO "del_user\n");
     return send_surname_message('d', surname, len);

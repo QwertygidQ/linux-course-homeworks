@@ -7,10 +7,11 @@
 *  Structure for the Phonebook module data.
 */
 
-struct user_data {
-	char   *name,    *surname,    *phone,    *email;
+struct user_data
+{
+	char *name, *surname, *phone, *email;
 	size_t name_len, surname_len, phone_len, email_len;
-	long   age;
+	long age;
 };
 
 #endif
