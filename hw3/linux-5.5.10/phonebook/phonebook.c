@@ -7,6 +7,7 @@
 #include <linux/err.h>
 #include <linux/fcntl.h>
 #include <linux/fs.h>
+#include <linux/slab.h>
 
 #include <linux/string.h>
 #include <linux/types.h>
@@ -29,20 +30,116 @@ static void close_file(struct file *filp)
     filp_close(filp, NULL);
 }
 
+static int allocate_user_data(
+    struct user_data *to,
+    struct user_data *from
+)
+{
+    to->surname  = NULL;
+    to->name     = NULL;
+    to->phone    = NULL;
+    to->email    = NULL;
+
+    to->surname = (char *)kmalloc(sizeof(char) * (from->surname_len + 1), GFP_KERNEL);
+    if (!to->surname)
+        return -EFAULT;
+
+    to->name = (char *)kmalloc(sizeof(char) * (from->name_len + 1), GFP_KERNEL);
+    if (!to->name)
+    {
+        kfree(to->surname);
+        to->surname = NULL;
+
+        return -EFAULT;
+    }
+
+    to->phone = (char *)kmalloc(sizeof(char) * (from->phone_len + 1), GFP_KERNEL);
+    if (!to->phone)
+    {
+        kfree(to->surname);
+        to->surname = NULL;
+
+        kfree(to->name);
+        to->name = NULL;
+
+        return -EFAULT;
+    }
+
+    to->email = (char *)kmalloc(sizeof(char) * (from->email_len + 1), GFP_KERNEL);
+    if (!to->email)
+    {
+        kfree(to->surname);
+        to->surname = NULL;
+
+        kfree(to->name);
+        to->name = NULL;
+
+        kfree(to->phone);
+        to->phone = NULL;
+
+        return -EFAULT;
+    }
+
+    return 0;
+}
+
+static void deallocate_user_data(struct user_data *user)
+{
+    kfree(user->surname);
+    kfree(user->name);
+    kfree(user->phone);
+    kfree(user->email);
+}
+
+static int copy_user_data_from_user(
+    struct user_data *to,
+    struct user_data __user *from
+)
+{
+    int err;
+    struct user_data kern_from;
+
+    if (!to || !from)
+        return -EFAULT;
+
+    if (copy_from_user(&kern_from, from, sizeof(struct user_data)))
+        return -EFAULT;
+
+    err = allocate_user_data(to, &kern_from);
+    if (err)
+        return err;
+
+    copy_from_user(to->surname, kern_from.surname, sizeof(char) * kern_from.surname_len);
+    copy_from_user(to->name,    kern_from.name,    sizeof(char) * kern_from.name_len);
+    copy_from_user(to->phone,   kern_from.phone,   sizeof(char) * kern_from.phone_len);
+    copy_from_user(to->email,   kern_from.email,   sizeof(char) * kern_from.email_len);
+
+    to->surname_len = kern_from.surname_len;
+    to->name_len    = kern_from.name_len;
+    to->phone_len   = kern_from.phone_len;
+    to->email_len   = kern_from.email_len;
+    to->age         = kern_from.age;
+
+    to->surname[kern_from.surname_len] = '\0';
+    to->name[kern_from.name_len]       = '\0';
+    to->phone[kern_from.phone_len]     = '\0';
+    to->email[kern_from.email_len]     = '\0';
+
+    return 0;
+}
+
 static int fill_add_message(struct user_data *user, char output_string[], size_t *output_len)
 {
     char age_string[BUFFER_SIZE];
     size_t lengths[USER_STRINGS];
     size_t i;
 
-    snprintf(age_string, BUFFER_SIZE, "%ld", user->age);
-
     // Overflow checking
-    lengths[0] = strnlen(user->name,    BUFFER_SIZE);
-    lengths[1] = strnlen(user->surname, BUFFER_SIZE);
-    lengths[2] = strnlen(user->phone,   BUFFER_SIZE);
-    lengths[3] = strnlen(user->email,   BUFFER_SIZE);
-    lengths[4] = strnlen(age_string,    BUFFER_SIZE);
+    lengths[0] = user->surname_len;
+    lengths[1] = user->name_len;
+    lengths[2] = user->phone_len;
+    lengths[3] = user->email_len;
+    lengths[4] = snprintf(age_string, BUFFER_SIZE, "%ld", user->age);
 
     *output_len = lengths[0];
     for (i = 1; i < USER_STRINGS; ++i)
@@ -99,7 +196,6 @@ static int send_surname_message(
 
     err = kernel_write(filp, message, sizeof(char) * (len + 3), &filp->f_pos);
     close_file(filp);
-    printk(KERN_INFO "Open count: %d\n", filp->f_count);
 
     if (err < 0)
         return err;
@@ -164,10 +260,12 @@ SYSCALL_DEFINE1(
 
     struct file *filp;
 
-    if (copy_from_user(&user, input_data, sizeof(struct user_data)))
-        return -EFAULT;
+    err = copy_user_data_from_user(&user, input_data);
+    if (err)
+        return err;
 
     err = fill_add_message(&user, add_message, &add_message_len);
+    deallocate_user_data(&user);
     if (err)
         return err;
 
