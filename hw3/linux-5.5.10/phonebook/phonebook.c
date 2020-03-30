@@ -109,10 +109,16 @@ static int copy_user_data_from_user(
     if (err)
         return err;
 
-    copy_from_user(to->surname, kern_from.surname, sizeof(char) * kern_from.surname_len);
-    copy_from_user(to->name,    kern_from.name,    sizeof(char) * kern_from.name_len);
-    copy_from_user(to->phone,   kern_from.phone,   sizeof(char) * kern_from.phone_len);
-    copy_from_user(to->email,   kern_from.email,   sizeof(char) * kern_from.email_len);
+    if (
+        copy_from_user(to->surname, kern_from.surname, sizeof(char) * kern_from.surname_len) ||
+        copy_from_user(to->name,    kern_from.name,    sizeof(char) * kern_from.name_len)    ||
+        copy_from_user(to->phone,   kern_from.phone,   sizeof(char) * kern_from.phone_len)   ||
+        copy_from_user(to->email,   kern_from.email,   sizeof(char) * kern_from.email_len)
+    )
+    {
+        deallocate_user_data(to);
+        return -EFAULT;
+    }
 
     to->surname_len = kern_from.surname_len;
     to->name_len    = kern_from.name_len;
@@ -186,6 +192,8 @@ static int send_surname_message(
 
     if (copy_from_user(&ker_space_surname, surname, len))
         return -EFAULT;
+
+    ker_space_surname[len] = '\0';
 
     snprintf(message, BUFFER_SIZE, "%c %s\n", command, ker_space_surname);
     printk(KERN_INFO "Message: %s", message);
@@ -286,7 +294,7 @@ SYSCALL_DEFINE1(
 
 SYSCALL_DEFINE2(
     del_user,
-    const char __user, *surname,
+    const char __user *, surname,
     unsigned int, len
 )
 {
