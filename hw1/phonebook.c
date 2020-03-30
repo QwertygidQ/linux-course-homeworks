@@ -35,12 +35,14 @@ static struct class  *phonebook_class = NULL;
 static struct device *phonebook_device = NULL;
 
 static int     dev_open(struct inode *, struct file *);
+static int     dev_flush(struct file *, fl_owner_t id);
 static int     dev_release(struct inode *, struct file *);
 static ssize_t dev_read(struct file *, char __user *, size_t, loff_t *);
 static ssize_t dev_write(struct file *, const char __user *, size_t, loff_t *);
 
 static struct file_operations fops = {
     .open    = dev_open,
+    .flush   = dev_flush,
     .release = dev_release,
     .read    = dev_read,
     .write   = dev_write,
@@ -111,7 +113,7 @@ static int dev_open(struct inode *inode, struct file *file) {
     return 0;
 }
 
-static int dev_release(struct inode *inode, struct file *file) {
+static int dev_flush(struct file *file, fl_owner_t id) {
     if (user_buffer_needs_parsing) {
         if (parse_user_buffer()) { // parse_user_buffer returns 1 on error
             device_buffer[0] = 0;
@@ -129,6 +131,10 @@ static int dev_release(struct inode *inode, struct file *file) {
     user_msg_size = 0;
     printk(KERN_INFO "Phonebook: cleared the user buffer\n");
 
+    return 0;
+}
+
+static int dev_release(struct inode *inode, struct file *file) {
     device_opened_count--;
     module_put(THIS_MODULE);
 
