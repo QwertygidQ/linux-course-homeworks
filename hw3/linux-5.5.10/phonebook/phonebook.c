@@ -191,7 +191,6 @@ static int send_surname_message(
     ker_space_surname[len] = '\0';
 
     snprintf(message, BUFFER_SIZE, "%c %s\n", command, ker_space_surname);
-    printk(KERN_INFO "Message: %s", message);
 
     filp = open_file(DEVICE_FILE, O_WRONLY);
     if (!filp)
@@ -241,6 +240,8 @@ SYSCALL_DEFINE3(
     if (message_len < 0)
         return message_len;
 
+    user_message[message_len - 1] = '\0'; // change '\n' to '\0'
+
     //struct user_data user;
     //err = parse_find_output(user_message, message_len, user);
 
@@ -270,8 +271,6 @@ SYSCALL_DEFINE1(
     if (err)
         return err;
 
-    printk(KERN_INFO "Add message: %s", add_message);
-
     filp = open_file(DEVICE_FILE, O_WRONLY);
     if (!filp)
         return -ENOENT;
@@ -290,6 +289,5 @@ SYSCALL_DEFINE2(
     const char __user *, surname,
     unsigned int, len)
 {
-    printk(KERN_INFO "del_user\n");
     return send_surname_message('d', surname, len);
 }
