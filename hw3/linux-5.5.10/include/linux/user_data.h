@@ -6,9 +6,8 @@
 */
 
 struct user_data {
-	const char *name, *surname, *phone, *email, *to_split;
+	char *name, *surname, *phone, *email;
 	long       age;
-	int        successfully_created;
 };
 
 #endif

@@ -29,7 +29,7 @@ static void close_file(struct file *filp)
     filp_close(filp, NULL);
 }
 
-static ssize_t fill_add_message(struct user_data *user, char output_string[], size_t *output_len)
+static int fill_add_message(struct user_data *user, char output_string[], size_t *output_len)
 {
     char age_string[BUFFER_SIZE];
     size_t lengths[USER_STRINGS];
@@ -73,6 +73,45 @@ static ssize_t fill_add_message(struct user_data *user, char output_string[], si
     return 0;
 }
 
+static int send_surname_message(
+    const char command,
+    const char __user *surname,
+    unsigned int len
+)
+{
+    char ker_space_surname[BUFFER_SIZE], message[BUFFER_SIZE];
+    struct file *filp;
+    int err;
+
+    // command char, space, '\n' -- 3 chars
+    if (len > (BUFFER_SIZE - 1) - 3)
+        return -EOVERFLOW;
+
+    if (copy_from_user(&ker_space_surname, surname, len))
+        return -EFAULT;
+
+    snprintf(message, BUFFER_SIZE, "%c %s\n", command, ker_space_surname);
+    printk(KERN_INFO "Message: %s", message);
+
+    filp = open_file(DEVICE_FILE, O_WRONLY | O_SYNC);
+    if (!filp)
+        return -ENOENT;
+
+    err = kernel_write(filp, message, sizeof(char) * (len + 3), &filp->f_pos);
+    close_file(filp);
+    printk(KERN_INFO "Open count: %d\n", filp->f_count);
+
+    if (err < 0)
+        return err;
+
+    return 0;
+}
+
+static int parse_find_output(const char message[], const size_t len, struct user_data *user)
+{
+    return 0;
+}
+
 SYSCALL_DEFINE0(hello_world)
 {
 	printk(KERN_INFO "Hello, world!");
@@ -86,8 +125,30 @@ SYSCALL_DEFINE3(
 	struct __user user_data *, output_data
 )
 {
-	printk(KERN_INFO "get_user");
-	return 0;
+    char user_message[BUFFER_SIZE];
+    int err, message_len;
+    struct file *filp;
+
+    err = send_surname_message('f', surname, len);
+    if (err)
+        return err;
+
+    filp = open_file(DEVICE_FILE, O_RDONLY | O_SYNC);
+    if (!filp)
+        return -ENOENT;
+
+    message_len = kernel_read(filp, user_message, BUFFER_SIZE, &filp->f_pos);
+    close_file(filp);
+
+    if (message_len < 0)
+        return message_len;
+
+    //struct user_data user;
+    //err = parse_find_output(user_message, message_len, user);
+
+    printk(KERN_INFO "'%s', %d\n", user_message, message_len);
+
+    return 0;
 }
 
 SYSCALL_DEFINE1(
@@ -97,7 +158,7 @@ SYSCALL_DEFINE1(
 {
     struct user_data user;
 
-    ssize_t err;
+    int err;
     char add_message[BUFFER_SIZE];
     size_t add_message_len;
 
@@ -112,7 +173,7 @@ SYSCALL_DEFINE1(
 
     printk(KERN_INFO "Add message: %s", add_message);
 
-    filp = open_file(DEVICE_FILE, O_WRONLY);
+    filp = open_file(DEVICE_FILE, O_WRONLY | O_SYNC);
     if (!filp)
         return -ENOENT;
 
@@ -131,6 +192,6 @@ SYSCALL_DEFINE2(
     unsigned int, len
 )
 {
-    printk(KERN_INFO "del_user");
-	return 0;
+    printk(KERN_INFO "del_user\n");
+    return send_surname_message('d', surname, len);
 }
