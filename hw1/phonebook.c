@@ -5,6 +5,7 @@
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/mutex.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 
@@ -30,9 +31,11 @@ static int           user_msg_size;
 static int           user_buffer_needs_parsing = 0;
 static char          device_buffer[BUFFER_SIZE] = {0}; // messages to the user
 static int           device_msg_size;
-static int           device_opened_count = 0;
+static int           device_write_opened_count = 0;
+static int           device_read_opened_count = 0;
 static struct class  *phonebook_class = NULL;
 static struct device *phonebook_device = NULL;
+static struct mutex  flush_mutex;
 
 static int     dev_open(struct inode *, struct file *);
 static int     dev_flush(struct file *, fl_owner_t id);
@@ -84,6 +87,8 @@ static int __init phonebook_init(void) {
         return PTR_ERR(phonebook_device);
     }
 
+    mutex_init(&flush_mutex);
+
     printk(KERN_INFO "Phonebook: successfully initialized\n");
     return 0;
 }
@@ -103,10 +108,20 @@ static void __exit phonebook_exit(void) {
 }
 
 static int dev_open(struct inode *inode, struct file *file) {
-    if (device_opened_count)
+    if (file->f_flags & O_RDWR)  // You can't open this device to both read and write
+        return -ENOSYS;
+
+    if (
+        ((file->f_flags & O_WRONLY) && device_write_opened_count) ||
+        ((file->f_flags & O_RDONLY) && device_read_opened_count)
+    )
         return -EBUSY;
 
-    device_opened_count++;
+    if (file->f_flags & O_WRONLY)
+        device_write_opened_count = 1;
+    else
+        device_read_opened_count = 1;
+
     try_module_get(THIS_MODULE);
 
     printk(KERN_INFO "Phonebook: device has been opened\n");
@@ -114,6 +129,8 @@ static int dev_open(struct inode *inode, struct file *file) {
 }
 
 static int dev_flush(struct file *file, fl_owner_t id) {
+    mutex_lock(&flush_mutex);
+
     if (user_buffer_needs_parsing) {
         if (parse_user_buffer()) { // parse_user_buffer returns 1 on error
             device_buffer[0] = 0;
@@ -131,11 +148,16 @@ static int dev_flush(struct file *file, fl_owner_t id) {
     user_msg_size = 0;
     printk(KERN_INFO "Phonebook: cleared the user buffer\n");
 
+    mutex_unlock(&flush_mutex);
     return 0;
 }
 
 static int dev_release(struct inode *inode, struct file *file) {
-    device_opened_count--;
+    if (file->f_flags & O_WRONLY)
+        device_write_opened_count = 0;
+    else
+        device_read_opened_count = 0;
+
     module_put(THIS_MODULE);
 
     printk(KERN_INFO "Phonebook: device has been closed\n");
