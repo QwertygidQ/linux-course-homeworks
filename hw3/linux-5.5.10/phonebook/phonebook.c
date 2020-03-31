@@ -30,9 +30,8 @@ static void close_file(struct file *filp)
     filp_close(filp, NULL);
 }
 
-static int allocate_user_data(
-    struct user_data *to,
-    struct user_data *from)
+static int allocate_user_data(struct user_data *to,
+                              struct user_data *from)
 {
     to->surname = NULL;
     to->name = NULL;
@@ -90,9 +89,8 @@ static void deallocate_user_data(struct user_data *user)
     kfree(user->email);
 }
 
-static int copy_user_data_from_user(
-    struct user_data *to,
-    struct user_data __user *from)
+static int copy_user_data_from_user(struct user_data *to,
+                                    struct user_data __user *from)
 {
     int err;
     struct user_data kern_from;
@@ -130,9 +128,8 @@ static int copy_user_data_from_user(
     return 0;
 }
 
-static int copy_user_data_to_user(
-    struct user_data __user *to,
-    struct user_data *from)
+static int copy_user_data_to_user(struct user_data __user *to,
+                                  struct user_data *from)
 {
     struct user_data user_ptrs; // needed to extract the C-string pointers from user space
 
@@ -188,23 +185,21 @@ static int fill_add_message(struct user_data *user, char output_string[], size_t
 
     *output_len += 3;
 
-    snprintf(
-        output_string,
-        BUFFER_SIZE,
-        "a %s %s %s %s %s\n",
-        user->name,
-        user->surname,
-        user->phone,
-        user->email,
-        age_string);
+    snprintf(output_string,
+             BUFFER_SIZE,
+             "a %s %s %s %s %s\n",
+             user->name,
+             user->surname,
+             user->phone,
+             user->email,
+             age_string);
 
     return 0;
 }
 
-static int send_surname_message(
-    const char command,
-    const char __user *surname,
-    unsigned int len)
+static int send_surname_message(const char command,
+                                const char __user *surname,
+                                unsigned int len)
 {
     char ker_space_surname[BUFFER_SIZE], message[BUFFER_SIZE];
     struct file *filp;
@@ -284,11 +279,10 @@ SYSCALL_DEFINE0(hello_world)
     return 0;
 }
 
-SYSCALL_DEFINE3(
-    get_user,
-    const char __user *, surname,
-    unsigned int, len,
-    struct __user user_data *, output_data)
+SYSCALL_DEFINE3(get_user,
+                const char __user *, surname,
+                unsigned int, len,
+                struct __user user_data *, output_data)
 {
     char user_message[BUFFER_SIZE];
     int err, message_len;
@@ -322,9 +316,8 @@ SYSCALL_DEFINE3(
     return 0;
 }
 
-SYSCALL_DEFINE1(
-    add_user,
-    struct __user user_data *, input_data)
+SYSCALL_DEFINE1(add_user,
+                struct __user user_data *, input_data)
 {
     struct user_data user;
 
@@ -356,10 +349,9 @@ SYSCALL_DEFINE1(
     return 0;
 }
 
-SYSCALL_DEFINE2(
-    del_user,
-    const char __user *, surname,
-    unsigned int, len)
+SYSCALL_DEFINE2(del_user,
+                const char __user *, surname,
+                unsigned int, len)
 {
     return send_surname_message('d', surname, len);
 }
