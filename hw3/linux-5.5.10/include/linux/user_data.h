@@ -9,9 +9,9 @@
 
 struct user_data
 {
-	char *name, *surname, *phone, *email;
-	size_t name_len, surname_len, phone_len, email_len;
-	long age;
+    char *name, *surname, *phone, *email;
+    size_t name_len, surname_len, phone_len, email_len;
+    long age;
 };
 
 #endif
