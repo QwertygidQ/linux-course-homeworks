@@ -131,6 +131,38 @@ static int copy_user_data_from_user(
     return 0;
 }
 
+static int copy_user_data_to_user(
+    struct user_data __user *to,
+    struct user_data *from
+)
+{
+    if (!to || !from)
+        return -EFAULT;
+
+//    if (copy_to_user(to, from, sizeof(struct user_data)))
+//        return -EFAULT;
+
+    if (
+        put_user(from->surname_len, &to->surname_len) ||
+        put_user(from->name_len, &to->name_len) ||
+        put_user(from->phone_len, &to->phone_len) ||
+        put_user(from->email_len, &to->email_len) ||
+        put_user(from->age, &to->age)
+    )
+        return -EFAULT;
+
+    // +1 for '\0'
+    if (
+        copy_to_user(to->surname, from->surname, sizeof(char) * (from->surname_len + 1)) ||
+        copy_to_user(to->name, from->name, sizeof(char) * (from->name_len + 1)) ||
+        copy_to_user(to->phone, from->phone, sizeof(char) * (from->phone_len + 1)) ||
+        copy_to_user(to->email, from->email, sizeof(char) * (from->email_len + 1))
+    )
+        return -EFAULT;
+
+    return 0;
+}
+
 static int fill_add_message(struct user_data *user, char output_string[], size_t *output_len)
 {
     char age_string[BUFFER_SIZE];
@@ -205,8 +237,47 @@ static int send_surname_message(
     return 0;
 }
 
-static int parse_find_output(const char message[], const size_t len, struct user_data *user)
+static int parse_find_output(char message[], const size_t len, struct user_data *user)
 {
+    char *age_str = NULL;
+
+    user->name = NULL;
+    user->surname = NULL;
+    user->phone = NULL;
+    user->email = NULL;
+    user->age = 0;
+
+    user->name = strsep(&message, " ");
+    if (!user->name)
+        return -EINVAL;
+    else
+        user->name_len = strnlen(user->name, BUFFER_SIZE);
+
+    user->surname = strsep(&message, " ");
+    if (!user->surname)
+        return -EINVAL;
+    else
+        user->surname_len = strnlen(user->surname, BUFFER_SIZE);
+
+    user->phone = strsep(&message, " ");
+    if (!user->phone)
+        return -EINVAL;
+    else
+        user->phone_len = strnlen(user->phone, BUFFER_SIZE);
+
+    user->email = strsep(&message, " ");
+    if (!user->email)
+        return -EINVAL;
+    else
+        user->email_len = strnlen(user->email, BUFFER_SIZE);
+
+    age_str = strsep(&message, " ");
+    if (!age_str)
+        return -EINVAL;
+
+    if (kstrtol(age_str, 10, &user->age))
+        return -EINVAL;
+
     return 0;
 }
 
@@ -225,6 +296,7 @@ SYSCALL_DEFINE3(
     char user_message[BUFFER_SIZE];
     int err, message_len;
     struct file *filp;
+    struct user_data user;
 
     err = send_surname_message('f', surname, len);
     if (err)
@@ -242,10 +314,13 @@ SYSCALL_DEFINE3(
 
     user_message[message_len - 1] = '\0'; // change '\n' to '\0'
 
-    //struct user_data user;
-    //err = parse_find_output(user_message, message_len, user);
+    err = parse_find_output(user_message, message_len, &user);
+    if (err)
+        return err;
 
-    printk(KERN_INFO "'%s', %d\n", user_message, message_len);
+    err = copy_user_data_to_user(output_data, &user);
+    if (err)
+        return err;
 
     return 0;
 }
