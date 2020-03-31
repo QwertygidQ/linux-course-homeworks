@@ -107,8 +107,7 @@ static int copy_user_data_from_user(
     if (err)
         return err;
 
-    if (
-        copy_from_user(to->surname, kern_from.surname, sizeof(char) * kern_from.surname_len) ||
+    if (copy_from_user(to->surname, kern_from.surname, sizeof(char) * kern_from.surname_len) ||
         copy_from_user(to->name, kern_from.name, sizeof(char) * kern_from.name_len) ||
         copy_from_user(to->phone, kern_from.phone, sizeof(char) * kern_from.phone_len) ||
         copy_from_user(to->email, kern_from.email, sizeof(char) * kern_from.email_len))
@@ -145,15 +144,13 @@ static int copy_user_data_to_user(
 
     // All pointers are in the user space, despite user_ptrs being in the kernel space!
     // +1 for '\0'
-    if (
-        copy_to_user(user_ptrs.surname, from->surname, sizeof(char) * (from->surname_len + 1)) ||
+    if (copy_to_user(user_ptrs.surname, from->surname, sizeof(char) * (from->surname_len + 1)) ||
         copy_to_user(user_ptrs.name, from->name, sizeof(char) * (from->name_len + 1)) ||
         copy_to_user(user_ptrs.phone, from->phone, sizeof(char) * (from->phone_len + 1)) ||
         copy_to_user(user_ptrs.email, from->email, sizeof(char) * (from->email_len + 1)))
         return -EFAULT;
 
-    if (
-        put_user(from->surname_len, &to->surname_len) ||
+    if (put_user(from->surname_len, &to->surname_len) ||
         put_user(from->name_len, &to->name_len) ||
         put_user(from->phone_len, &to->phone_len) ||
         put_user(from->email_len, &to->email_len) ||
