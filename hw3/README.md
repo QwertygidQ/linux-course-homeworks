@@ -100,27 +100,94 @@ dmesg | tail | grep "Hello, world!"
 (Save in example.c)
 ```
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
 #include <linux/kernel.h>
 #include <sys/syscall.h>
 #include <unistd.h>
 
-struct user_data {
-	const char *name, *surname, *phone, *email, *to_split;
+#define get_user 437
+#define add_user 438
+#define del_user 439
+
+struct user_data
+{
+	char *name, *surname, *phone, *email;
+	size_t name_len, surname_len, phone_len, email_len;
 	long       age;
-	int        successfully_created;
 };
+
+#define BUFFER_SIZE 256  // Phonebook module buffer size
+
+void allocate(struct user_data *user)
+{
+	user->name = (char *)malloc(sizeof(char) * BUFFER_SIZE);
+	user->surname = (char *)malloc(sizeof(char) * BUFFER_SIZE);
+	user->phone = (char *)malloc(sizeof(char) * BUFFER_SIZE);
+	user->email = (char *)malloc(sizeof(char) * BUFFER_SIZE);
+}
+
+void deallocate(struct user_data *user)
+{
+	free(user->surname);
+	free(user->name);
+	free(user->phone);
+	free(user->email);
+}
 
 int main()
 {
+	// User struct initialization
 	struct user_data data;
+
 	data.surname = "Surname";
+	data.surname_len = strlen(data.surname);
+
 	data.name = "Name";
+	data.name_len = strlen(data.name);
+
 	data.phone = "+1(111)1111";
+	data.phone_len = strlen(data.phone);
+
 	data.email = "email@example.com";
+	data.email_len = strlen(data.email);
+
 	data.age = 20;
 
-	long result = syscall(438, &data);
-	printf("syscall returned %d\n", result);
+	// Adding the user
+	long result;
+
+	result = syscall(add_user, &data);
+	printf("add_user returned %d\n", result);
+
+	// Finding the user
+	struct user_data found;
+	allocate(&found);
+
+	result = syscall(get_user, data.surname, strlen(data.surname), &found);
+	printf("get_user returned %d\n", result);
+	printf(
+		"Surname: %s, Name: %s, Email: %s, Phone: %s, Age: %ld\n",
+		found.surname,
+		found.name,
+		found.email,
+		found.phone,
+		found.age
+	);
+	deallocate(&found);
+
+	// Deleting the user
+	result = syscall(del_user, data.surname, strlen(data.surname));
+	printf("del_user returned %d\n", result);
+
+	// Finding a nonexistant user should fail
+	allocate(&found);
+
+	result = syscall(get_user, data.surname, strlen(data.surname), &found);
+	printf("get_user returned %d for a deleted user\n", result);
+
+	deallocate(&found);
 
 	return 0;
 }
