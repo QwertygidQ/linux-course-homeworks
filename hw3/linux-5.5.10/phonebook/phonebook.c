@@ -133,10 +133,9 @@ static int copy_user_data_from_user(
 
 static int copy_user_data_to_user(
     struct user_data __user *to,
-    struct user_data *from
-)
+    struct user_data *from)
 {
-    struct user_data user_ptrs;  // needed to extract the C-string pointers from user space
+    struct user_data user_ptrs; // needed to extract the C-string pointers from user space
 
     if (!to || !from)
         return -EFAULT;
@@ -150,8 +149,7 @@ static int copy_user_data_to_user(
         copy_to_user(user_ptrs.surname, from->surname, sizeof(char) * (from->surname_len + 1)) ||
         copy_to_user(user_ptrs.name, from->name, sizeof(char) * (from->name_len + 1)) ||
         copy_to_user(user_ptrs.phone, from->phone, sizeof(char) * (from->phone_len + 1)) ||
-        copy_to_user(user_ptrs.email, from->email, sizeof(char) * (from->email_len + 1))
-    )
+        copy_to_user(user_ptrs.email, from->email, sizeof(char) * (from->email_len + 1)))
         return -EFAULT;
 
     if (
@@ -159,8 +157,7 @@ static int copy_user_data_to_user(
         put_user(from->name_len, &to->name_len) ||
         put_user(from->phone_len, &to->phone_len) ||
         put_user(from->email_len, &to->email_len) ||
-        put_user(from->age, &to->age)
-    )
+        put_user(from->age, &to->age))
         return -EFAULT;
 
     return 0;
