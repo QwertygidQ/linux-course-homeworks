@@ -136,11 +136,23 @@ static int copy_user_data_to_user(
     struct user_data *from
 )
 {
+    struct user_data user_ptrs;  // needed to extract the C-string pointers from user space
+
     if (!to || !from)
         return -EFAULT;
 
-//    if (copy_to_user(to, from, sizeof(struct user_data)))
-//        return -EFAULT;
+    if (copy_from_user(&user_ptrs, to, sizeof(struct user_data)))
+        return -EFAULT;
+
+    // All pointers are in the user space, despite user_ptrs being in the kernel space!
+    // +1 for '\0'
+    if (
+        copy_to_user(user_ptrs.surname, from->surname, sizeof(char) * (from->surname_len + 1)) ||
+        copy_to_user(user_ptrs.name, from->name, sizeof(char) * (from->name_len + 1)) ||
+        copy_to_user(user_ptrs.phone, from->phone, sizeof(char) * (from->phone_len + 1)) ||
+        copy_to_user(user_ptrs.email, from->email, sizeof(char) * (from->email_len + 1))
+    )
+        return -EFAULT;
 
     if (
         put_user(from->surname_len, &to->surname_len) ||
@@ -148,15 +160,6 @@ static int copy_user_data_to_user(
         put_user(from->phone_len, &to->phone_len) ||
         put_user(from->email_len, &to->email_len) ||
         put_user(from->age, &to->age)
-    )
-        return -EFAULT;
-
-    // +1 for '\0'
-    if (
-        copy_to_user(to->surname, from->surname, sizeof(char) * (from->surname_len + 1)) ||
-        copy_to_user(to->name, from->name, sizeof(char) * (from->name_len + 1)) ||
-        copy_to_user(to->phone, from->phone, sizeof(char) * (from->phone_len + 1)) ||
-        copy_to_user(to->email, from->email, sizeof(char) * (from->email_len + 1))
     )
         return -EFAULT;
 
