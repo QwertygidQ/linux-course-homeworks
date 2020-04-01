@@ -191,7 +191,7 @@ int main()
 	result = syscall(del_user, data.surname, strlen(data.surname));
 	printf("del_user returned %d\n", result);
 
-	// Finding a nonexistant user should fail
+	// Finding a nonexistent user should fail
 	allocate(&found);
 
 	result = syscall(get_user, data.surname, strlen(data.surname), &found);
