@@ -1,3 +1,13 @@
+# Syscalls for the Phonebook module
+
+Exported syscalls:
+* `get_user(const char *surname, unsigned int len, struct user_data *output_data)`
+* `add_user(struct user_data *input_data)`
+* `del_user(const char *surname, unsigned int len)`
+
+(`struct user_data` is defined in linux-5.5.10/include/linux/user_data.h)
+
+
 ## Prerequisites
 * QEMU
 * Arch Linux ISO (kernel version 5.5.10)
