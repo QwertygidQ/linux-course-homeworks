@@ -1,6 +1,7 @@
 # Syscalls for the Phonebook module
 
 Exported syscalls:
+* `hello_world()`
 * `get_user(const char *surname, unsigned int len, struct user_data *output_data)`
 * `add_user(struct user_data *input_data)`
 * `del_user(const char *surname, unsigned int len)`
@@ -123,83 +124,83 @@ dmesg | tail | grep "Hello, world!"
 
 struct user_data
 {
-	char *name, *surname, *phone, *email;
-	size_t name_len, surname_len, phone_len, email_len;
-	long       age;
+    char *name, *surname, *phone, *email;
+    size_t name_len, surname_len, phone_len, email_len;
+    long       age;
 };
 
 #define BUFFER_SIZE 256  // Phonebook module buffer size
 
 void allocate(struct user_data *user)
 {
-	user->name = (char *)malloc(sizeof(char) * BUFFER_SIZE);
-	user->surname = (char *)malloc(sizeof(char) * BUFFER_SIZE);
-	user->phone = (char *)malloc(sizeof(char) * BUFFER_SIZE);
-	user->email = (char *)malloc(sizeof(char) * BUFFER_SIZE);
+    user->name = (char *)malloc(sizeof(char) * BUFFER_SIZE);
+    user->surname = (char *)malloc(sizeof(char) * BUFFER_SIZE);
+    user->phone = (char *)malloc(sizeof(char) * BUFFER_SIZE);
+    user->email = (char *)malloc(sizeof(char) * BUFFER_SIZE);
 }
 
 void deallocate(struct user_data *user)
 {
-	free(user->surname);
-	free(user->name);
-	free(user->phone);
-	free(user->email);
+    free(user->surname);
+    free(user->name);
+    free(user->phone);
+    free(user->email);
 }
 
 int main()
 {
-	// User struct initialization
-	struct user_data data;
+    // User struct initialization
+    struct user_data data;
 
-	data.surname = "Surname";
-	data.surname_len = strlen(data.surname);
+    data.surname = "Surname";
+    data.surname_len = strlen(data.surname);
 
-	data.name = "Name";
-	data.name_len = strlen(data.name);
+    data.name = "Name";
+    data.name_len = strlen(data.name);
 
-	data.phone = "+1(111)1111";
-	data.phone_len = strlen(data.phone);
+    data.phone = "+1(111)1111";
+    data.phone_len = strlen(data.phone);
 
-	data.email = "email@example.com";
-	data.email_len = strlen(data.email);
+    data.email = "email@example.com";
+    data.email_len = strlen(data.email);
 
-	data.age = 20;
+    data.age = 20;
 
-	// Adding the user
-	long result;
+    // Adding the user
+    long result;
 
-	result = syscall(add_user, &data);
-	printf("add_user returned %d\n", result);
+    result = syscall(add_user, &data);
+    printf("add_user returned %d\n", result);
 
-	// Finding the user
-	struct user_data found;
-	allocate(&found);
+    // Finding the user
+    struct user_data found;
+    allocate(&found);
 
-	result = syscall(get_user, data.surname, strlen(data.surname), &found);
-	printf("get_user returned %d\n", result);
-	printf(
-		"Surname: %s, Name: %s, Email: %s, Phone: %s, Age: %ld\n",
-		found.surname,
-		found.name,
-		found.email,
-		found.phone,
-		found.age
-	);
-	deallocate(&found);
+    result = syscall(get_user, data.surname, strlen(data.surname), &found);
+    printf("get_user returned %d\n", result);
+    printf(
+        "Surname: %s, Name: %s, Email: %s, Phone: %s, Age: %ld\n",
+        found.surname,
+        found.name,
+        found.email,
+        found.phone,
+        found.age
+    );
+    deallocate(&found);
 
-	// Deleting the user
-	result = syscall(del_user, data.surname, strlen(data.surname));
-	printf("del_user returned %d\n", result);
+    // Deleting the user
+    result = syscall(del_user, data.surname, strlen(data.surname));
+    printf("del_user returned %d\n", result);
 
-	// Finding a nonexistent user should fail
-	allocate(&found);
+    // Finding a nonexistent user should fail
+    allocate(&found);
 
-	result = syscall(get_user, data.surname, strlen(data.surname), &found);
-	printf("get_user returned %d for a deleted user\n", result);
+    result = syscall(get_user, data.surname, strlen(data.surname), &found);
+    printf("get_user returned %d for a deleted user\n", result);
 
-	deallocate(&found);
+    deallocate(&found);
 
-	return 0;
+    return 0;
 }
 ```
 
