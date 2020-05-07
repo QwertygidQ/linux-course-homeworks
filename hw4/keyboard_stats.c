@@ -10,7 +10,7 @@
 
 #include <asm/atomic.h>
 
-#define TIMER_EXPIRES 5000  // msec
+#define TIMER_EXPIRES 60000  // msec
 
 MODULE_LICENSE("GPL");
 
