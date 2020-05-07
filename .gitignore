@@ -1,4 +1,5 @@
 hw1/*
+hw4/*
 a.out
 fs
 hw2/mkfs/mkfs
@@ -7,11 +8,13 @@ hw2/openfs/openfs
 *.gch
 fs_cpy
 hw3/vm/*
+hw4/vm/*
 hw3/kernel/*
 
 !.gitignore
 !Makefile
 !phonebook.c
+!keyboard_stats.c
 !test.sh
 !LICENSE
 !README.md
